@@ -155,7 +155,7 @@ class Grade:
         if self.value in conversions[region]:
             return conversions[region][self.value]
         else:
-            print("The conversion factor", self.value, "is not in the dictonary, setting grade to 0")
+            # print("The conversion factor", self.value, "is not in the dictonary, setting grade to 0")
             return 0
 
 

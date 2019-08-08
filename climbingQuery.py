@@ -13,7 +13,7 @@ class ClimbingQuery:
           self.display(grade="all",stars="all",areaname="all")
           
      def _import_routes(self):
-          data = pandas.read_csv("routes.csv", sep=',', header=0)
+          data = pandas.read_csv("routes.csv", sep=',', header=0)          
           routelist = []; projectlist = []
           for i, row in data.iterrows():          
                # Unify dates
@@ -55,45 +55,62 @@ class ClimbingQuery:
                print(route)
                     
 
-     def getOnsightsFlashes(self,grade, areaname):
+     def getOnsightsFlashes(self,grade, area):
           os = 0; F = 0
-          if areaname == "all":
+          if area == "all":
                chopped = list(filter(lambda x:x.grade.conv_grade()==Grade(grade).conv_grade(),
                                      self.routelist))
           else:
                # Find number of Onsights and Flashes in this grade
                chopped = list(filter(lambda x:x.grade.conv_grade()==Grade(grade).conv_grade() and
-                                     x.location.area==areaname, self.routelist))
+                                     x.location.area==area, self.routelist))
           
           for line in chopped:
                if line.style == "o.s.":
                     os += 1
                elif line.style == "F":
                     F += 1
-
-          print("Number of on-sights and flashes in grade",grade,"in area",areaname)
-          print(os, "Onsights,", F, "Flashes (", os+F, ") out of",
-                len(chopped), "(", int((os+F)/len(chopped)*100), "%)")
           
-          return chopped
+          return chopped,os,F
 
 
-     def _get_routes(self,grade, stars, areaname):
+     def printRouteNumbers(self):
+          # print("smaller not working!")
+          # print(f"Number of Routes <7a: {len(self._get_routes(grade='<7a')[0])}")
+          print("Number of 7a-7a+'s: {}".format(len(self._get_routes(grade="7a")[0])+
+                                                len(self._get_routes(grade="7a/7a+")[0])+
+                                                len(self._get_routes(grade="7a+")[0])))
+          print("Number of 7b-7b+'s: {}".format(len(self._get_routes(grade="7b")[0])))
+          print("Number of 7c's: {}".format(len(self._get_routes(grade="7c")[0])))
+          print("Number of 8a's: {}".format(len(self._get_routes(grade="8a")[0])))
+          print("Number of 8a+'s: {}".format(len(self._get_routes(grade="8a+")[0])+len(self._get_routes(grade="8a/8a+")[0])))
+          print("Number of 8b's: {}".format(len(self._get_routes(grade="8b")[0])+len(self._get_routes(grade="8a+/8b")[0])))
+          print("Number of 8b+'s: {}".format(len(self._get_routes(grade="8b+")[0])+len(self._get_routes(grade="8b/8b+")[0])))
+          print("Number of 8c's: {}".format(len(self._get_routes(grade="8c")[0])))
+
+
+     def getAllRoutes(self):
+          """
+          Returns the complete route list.
+          """
+          return self.routelist
+               
+          
+     def _get_routes(self,grade="all",stars="all",areaname="all"):
           if areaname == "all":
                if grade != "all":
-                    return self.getOnsightsFlashes(grade,"all")
-               else:
-                    return self.routelist
-     
+                    return self.getOnsightsFlashes(grade=grade,area="all")
+               # else:
+	       #      return self.routelist
+               
           else:
-               if grade == "all":
-                    if stars == "all":
+               if grade=="all":
+                    if stars=="all":
                          return list(filter(lambda x: x.location.area==areaname, self.routelist))
                     else:
                          return list(filter(lambda x: x.stars in stars
                                             and x.location.area==areaname, self.routelist))
-     
-               
+                    
                else:
                     #getOnsightsFlashes(grade,areaname)
                     if stars == "all":
@@ -147,21 +164,27 @@ class ClimbingQuery:
 
 
 if __name__=="__main__":
-    from climbingQuery import ClimbingQuery
+     from climbingQuery import ClimbingQuery
+                
+     print("Testing class climbingQuery")
+     db=ClimbingQuery()
+     # print(db)
+                
+     print("Display all routes in grade 9+ with 2-3 stars in Franken")
+     db.display("5.13a",[2,3],"Frankenjura")
+                
+     print("\,Print the crag info of Wüstenstein")
+     db.printCragInfo("Wüstenstein")
+                
+     print("\nPrint the route info of Odins Tafel")
+     db.printRouteInfo("Odins Tafel")
+                
+     print("\nNumber of on-sights and flashes in grade 9 in area Frankenjura")
+     (chopped,os,F) = db.getOnsightsFlashes(grade="9",area="Frankenjura")
+     print(os, "Onsights,", F, "Flashes (", os+F, ") out of",
+           len(chopped), "(", int((os+F)/len(chopped)*100), "%)")
 
-    print("Testing class climbingQuery")
-    db=ClimbingQuery()
-    # print(db)
-
-    print("Display all routes in grade 9+ with 2-3 stars in Franken")
-    db.display("5.13a",[2,3],"Frankenjura")
-
-    print("\,Print the crag info of Wüstenstein")
-    db.printCragInfo("Wüstenstein")
-
-    print("\nPrint the route info of Odins Tafel")
-    db.printRouteInfo("Odins Tafel")
-
-    print("") # linebreak
-    routes=db.getOnsightsFlashes("9","Frankenjura")
-    print(*[x.name for x in routes]) # look up how to do separation by commas
+     print(*[x.name for x in chopped]) # look up how to do separation by commas
+                
+     print("\nPrint route numbers")
+     db.printRouteNumbers()
