@@ -14,6 +14,11 @@ class ClimbingQuery:
           
      def _import_routes(self):
           data = pandas.read_csv("routes.csv", sep=',', header=0)          
+          data["ole_grade"]=data["grade"].apply(lambda x: Grade(x).conv_grade())
+          print(data[data.ole_grade >= Grade("8a").conv_grade()][data.area=="Frankenjura"])
+          # print(data[data.area >= Grade("8a").conv_grade()])
+          
+          exit(0)
           routelist = []; projectlist = []
           for i, row in data.iterrows():          
                # Unify dates
@@ -62,7 +67,7 @@ class ClimbingQuery:
                                      self.routelist))
           else:
                # Find number of Onsights and Flashes in this grade
-               chopped = list(filter(lambda x:x.grade.conv_grade()==Grade(grade).conv_grade() and
+               chopped = list(filter(lambda x: x.grade.conv_grade()==Grade(grade).conv_grade() and
                                      x.location.area==area, self.routelist))
           
           for line in chopped:
