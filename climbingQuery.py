@@ -1,140 +1,122 @@
 from grade import Grade
 from route import Route
 import pandas
-import re
 from dateutil import parser
 import math as m
+import matplotlib.pyplot as plt
 
 class ClimbingQuery:
      def __init__(self):
-          (self.routelist,self.projectlist,self.data) = self._import_routes()
+          self.data = self._import_routes()
 
-     def __repr__(self):
-          self.display(grade="all",stars="all",areaname="all")
+          
+     def __str__(self):
+          return self.getFilteredRoutes().sort_values(by=["ole_grade"]).__str__()
+
           
      def _import_routes(self):
+          """
+          Import the CSV file.
+          :returns: data (Pandas data frame)
+          
+          .. note:: To be changed to SQL database.
+          """
+          # Import CSV file (should be changed to SQL query)
           data = pandas.read_csv("routes.csv", sep=',', header=0)          
           
-          routelist = []; projectlist = []
-          for i, row in data.iterrows():          
+          for i, row in data.iterrows():
                # Unify dates
                try:
                     row.date = parser.parse(str(data.date[i]))
                except ValueError:
-                    if str(data.project[i]) != "X":
-                         print("The climb", data.name[i],
-                               "is no project but has no date! "+
-                               "Setting date to 2000-12-31")
-                         row.date = parser.parse("2000-12-31")
-                    else:
-                         pass
+                    # The projects are unclimbed and have no date!
+                    pass
           
-               # Sort climbed routes and projects
-               if str(data.project[i])=="X":
-                    projectlist.append(Route(*row.values))
-               else:
-                    routelist.append(Route(*row.values))
-
           # Append a column ole_grade to pandas data frame
           data["ole_grade"]=data["grade"].apply(lambda x: Grade(x).conv_grade())
-          # print(data[data.ole_grade==Grade("8a+").conv_grade()][data.area=="Frankenjura"][data.project!="X"])
-                    
-          return routelist, projectlist, data
+
+          return data
+
+
+     def getFlashes(self, grade=None, area=None):
+          """
+          A function to return a route list of flashed routes in an area.
+          :param grade: The grade, e.g. '7c' or '9' or '5.12d'
+          :param area: Area name, e.g. "Frankenjura"
+          """
+          return self.getFilteredRoutes(grade=grade, area=area, style='F')
+
+     
+     def getOnsights(self, grade=None, area=None):
+          """
+          A function to return a route list of onsighted routes in an area.
+          :param grade: The grade, e.g. '7c' or '9' or '5.12d'
+          :param area: Area name, e.g. "Frankenjura"
+          """
+          return self.getFilteredRoutes(grade=grade, area=area, style='o.s.')
+
+
+     def printRouteNumbers(self):          
+          print("Number of Routes >= 8a: \t{}".format(len(self.data[self.data.ole_grade>=Grade("8a").conv_grade()])))
+          print("Total number of routes: \t{}".format(len(self.data)))
+          # Plot the route distribution as matplotlib object (internal pandas function)
+          self.data.hist(column="ole_grade",bins=30)
+          plt.show()
 
           
-     # Display routes in lines, sorted by grades
-     # To be implemented: Highlight Onsights and Flashes in the List
-     def display(self,grade,stars,areaname):
-          # Get the routes
-          routes=self._get_routes(grade,stars,areaname)
-
-          # sort the list by grades
-          routes.sort(key=lambda x: x.grade.conv_grade())
-          
-          for route in routes:
-               # if line.style == "o.s.":
-               #      print(line+"(on-sight)")
-               # elif line.style == "F":
-               #      print(line+"(flash)")
-               # else:
-               print(route)
-                    
-
-     def getOnsightsFlashes(self, grade="7c", area="Frankenjura"):
-          flashes =self.data[self.data.ole_grade==Grade(grade).conv_grade()][self.data.style=="F"]
-          onsights=self.data[self.data.ole_grade==Grade(grade).conv_grade()][self.data.style=="o.s."]
-          return flashes, onsights
-
-     def printRouteNumbers(self):
-          # print("smaller not working!")
-          # print(f"Number of Routes <7a: {len(self._get_routes(grade='<7a')[0])}")
-          print("Number of 7a-7a+'s: {}".format(len(self._get_routes(grade="7a")[0])+
-                                                len(self._get_routes(grade="7a/7a+")[0])+
-                                                len(self._get_routes(grade="7a+")[0])))
-          print("Number of 7b-7b+'s: {}".format(len(self._get_routes(grade="7b")[0])))
-          print("Number of 7c's: {}".format(len(self._get_routes(grade="7c")[0])))
-          print("Number of 8a's: {}".format(len(self._get_routes(grade="8a")[0])))
-          print("Number of 8a+'s: {}".format(len(self._get_routes(grade="8a+")[0])+len(self._get_routes(grade="8a/8a+")[0])))
-          print("Number of 8b's: {}".format(len(self._get_routes(grade="8b")[0])+len(self._get_routes(grade="8a+/8b")[0])))
-          print("Number of 8b+'s: {}".format(len(self._get_routes(grade="8b+")[0])+len(self._get_routes(grade="8b/8b+")[0])))
-          print("Number of 8c's: {}".format(len(self._get_routes(grade="8c")[0])))
-
-
-     def getAllRoutes(self):
+     def getAllRoutes(self, area=None):
           """
-          Returns the complete route list.
+          Returns the complete route list in an area.
           """
-          return self.routelist
-               
-     def getProjects(self, area="all"):
+          return self.getFilteredRoutes(area=area).sort_values(by=["ole_grade"]).__str__()
+
+     
+     def getProjects(self, area=None):
           """
-          Returns the complete project list.
+          Returns the project list in an area.
           """
           projects = self.data[self.data.project=="X"]
-          if area!="all":
+          if area:
                projects = projects[projects.area==area]
           return projects
 
-          
-     def _get_routes(self,grade="all",stars="all",areaname="all"):
+     
+     def getFilteredRoutes(self, area=None, grade=None, style=None, stars=None):
+          """
+          Return a route list under the applied filters.
+          :param area: Area name, e.g. 'Frankenjura'
+          :param grade: Grade, e.g. '8a' or '9+/10-'
+          :param style: Onsight 'o.s.' or Flash 'F'
+          :param stars: Number of stars [0,1,2,3]
+          :returns: pandas data frame
+          """
+          kwargs = {'area': area,
+                    'ole_grade': Grade(grade).conv_grade(),
+                    'style': style,
+                    'stars': stars
+          }
 
-          if areaname == "all":
-               if grade != "all":
-                    return self.getOnsightsFlashes(grade=grade,area="all")
-               # else:
-	       #      return self.routelist
-               
-          else:
-               if grade=="all":
-                    if stars=="all":
-                         return list(filter(lambda x: x.location.area==areaname, self.routelist))
-                    else:
-                         return list(filter(lambda x: x.stars in stars
-                                            and x.location.area==areaname, self.routelist))
+          # Copy the data frame, otherwise it is overridden
+          routes = self.data[self.data.project!="X"].copy()
+          for k,v in kwargs.items():
+               if v:
+                    routes = routes[routes[k] == v]
+          return routes
                     
-               else:
-                    #getOnsightsFlashes(grade,areaname)
-                    if stars == "all":
-                         return list(filter(lambda x:
-                                            x.grade.conv_grade()==Grade(grade).conv_grade() and
-                                            x.location.area==areaname, self.routelist))
-               
-                    else:
-                         return list(filter(lambda x:
-                                            x.grade.conv_grade()==Grade(grade).conv_grade()
-                                            and x.stars in stars and
-                                            x.location.area==areaname, self.routelist))
-               
-               
 
-     def printCragInfo(self,cragname):
+     def printCragInfo(self, cragname):
+          """
+          Prints the info about a crag.
+
+          .. note:: To be changed to SQL query.
+          """
           info=None
-          for route in self.routelist:
-               if route.location.crag == cragname:
+          for i, route in self.data.iterrows():
+               if route.crag == cragname:
                     try:
-                         m.isnan(route.location.cragnote)
+                         m.isnan(route.cragnote)
                     except TypeError:
-                         info=route.location.cragnote
+                         info=route.cragnote
                          break
           if info==None:
                print("No information about the crag", cragname, "available")
@@ -157,8 +139,8 @@ class ClimbingQuery:
 
      def sort_by_date(self):
           # Sort the list by the date of the ascent
-          # TO BE IMPLEMENTED. something like:
-          self.routelist.sort(key=lambda x: x.date)
+          # TO BE IMPLEMENTED
+          return 0
           
           # Sum up periods of one month
           # Add slash grades to upper grade
@@ -170,25 +152,22 @@ if __name__=="__main__":
      print("Testing class climbingQuery")
      db=ClimbingQuery()
      # print(db)
+     # print(db.getAllRoutes())
+
+     # print("Display all routes in grade 9+ with 2-3 stars in Franken")
+     # db.display("5.13a",[2,3],"Frankenjura")
                 
-     print("Display all routes in grade 9+ with 2-3 stars in Franken")
-     db.display("5.13a",[2,3],"Frankenjura")
-                
-     print("\,Print the crag info of Wüstenstein")
+     # print("\,Print the crag info of Wüstenstein")
      db.printCragInfo("Wüstenstein")
                 
-     print("\nPrint the route info of Odins Tafel")
-     db.printRouteInfo("Odins Tafel")
-                
-     print("\nNumber of on-sights and flashes in grade 9 in area Frankenjura")
-     (chopped,os,F) = db.getOnsightsFlashes(grade="9",area="Frankenjura")
-     print(os, "Onsights,", F, "Flashes (", os+F, ") out of",
-           len(chopped), "(", int((os+F)/len(chopped)*100), "%)")
+     # print("\nPrint the route info of Odins Tafel")
+     # db.printRouteInfo("Odins Tafel")
+                                
+     # Print route numbers
+     # db.printRouteNumbers()
 
-     print(", ".join([x.name for x in chopped])) # look up how to do separation by commas
-                
-     print("\nPrint route numbers")
-     db.printRouteNumbers()
+     # Print project list
+     # print(db.getProjects(area="Frankenjura"))
 
-     print("Print project list")
-     print(db.getProjects(area="Frankenjura"))
+     # print(db.getFilteredRoutes(area="Frankenjura",stars=3))
+     # print(db.getOnsights(area="Frankenjura",grade="9"))
