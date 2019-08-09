@@ -60,24 +60,10 @@ class ClimbingQuery:
                print(route)
                     
 
-     def getOnsightsFlashes(self, grade, area):
-          os = 0; F = 0
-          if area=="all":
-               chopped = list(filter(lambda x:x.grade.conv_grade()==Grade(grade).conv_grade(),
-                                     self.routelist))
-          else:
-               # Find number of Onsights and Flashes in this grade
-               chopped = list(filter(lambda x: x.grade.conv_grade()==Grade(grade).conv_grade() and
-                                     x.location.area==area, self.routelist))
-          
-          for line in chopped:
-               if line.style == "o.s.":
-                    os += 1
-               elif line.style == "F":
-                    F += 1
-          
-          return chopped,os,F
-
+     def getOnsightsFlashes(self, grade="7c", area="Frankenjura"):
+          flashes =self.data[self.data.ole_grade==Grade(grade).conv_grade()][self.data.style=="F"]
+          onsights=self.data[self.data.ole_grade==Grade(grade).conv_grade()][self.data.style=="o.s."]
+          return flashes, onsights
 
      def printRouteNumbers(self):
           # print("smaller not working!")
