@@ -7,18 +7,14 @@ import math as m
 
 class ClimbingQuery:
      def __init__(self):
-          (self.routelist,self.projectlist) = self._import_routes()
+          (self.routelist,self.projectlist,self.data) = self._import_routes()
 
      def __repr__(self):
           self.display(grade="all",stars="all",areaname="all")
           
      def _import_routes(self):
           data = pandas.read_csv("routes.csv", sep=',', header=0)          
-          data["ole_grade"]=data["grade"].apply(lambda x: Grade(x).conv_grade())
-          print(data[data.ole_grade >= Grade("8a").conv_grade()][data.area=="Frankenjura"])
-          # print(data[data.area >= Grade("8a").conv_grade()])
           
-          exit(0)
           routelist = []; projectlist = []
           for i, row in data.iterrows():          
                # Unify dates
@@ -34,12 +30,16 @@ class ClimbingQuery:
                          pass
           
                # Sort climbed routes and projects
-               if str(data.project[i]) == "X":
+               if str(data.project[i])=="X":
                     projectlist.append(Route(*row.values))
                else:
                     routelist.append(Route(*row.values))
+
+          # Append a column ole_grade to pandas data frame
+          data["ole_grade"]=data["grade"].apply(lambda x: Grade(x).conv_grade())
+          # print(data[data.ole_grade==Grade("8a+").conv_grade()][data.area=="Frankenjura"][data.project!="X"])
                     
-          return routelist, projectlist
+          return routelist, projectlist, data
 
           
      # Display routes in lines, sorted by grades
@@ -60,9 +60,9 @@ class ClimbingQuery:
                print(route)
                     
 
-     def getOnsightsFlashes(self,grade, area):
+     def getOnsightsFlashes(self, grade, area):
           os = 0; F = 0
-          if area == "all":
+          if area=="all":
                chopped = list(filter(lambda x:x.grade.conv_grade()==Grade(grade).conv_grade(),
                                      self.routelist))
           else:
@@ -100,8 +100,18 @@ class ClimbingQuery:
           """
           return self.routelist
                
+     def getProjects(self, area="all"):
+          """
+          Returns the complete project list.
+          """
+          projects = self.data[self.data.project=="X"]
+          if area!="all":
+               projects = projects[projects.area==area]
+          return projects
+
           
      def _get_routes(self,grade="all",stars="all",areaname="all"):
+
           if areaname == "all":
                if grade != "all":
                     return self.getOnsightsFlashes(grade=grade,area="all")
@@ -189,7 +199,10 @@ if __name__=="__main__":
      print(os, "Onsights,", F, "Flashes (", os+F, ") out of",
            len(chopped), "(", int((os+F)/len(chopped)*100), "%)")
 
-     print(*[x.name for x in chopped]) # look up how to do separation by commas
+     print(", ".join([x.name for x in chopped])) # look up how to do separation by commas
                 
      print("\nPrint route numbers")
      db.printRouteNumbers()
+
+     print("Print project list")
+     print(db.getProjects(area="Frankenjura"))
