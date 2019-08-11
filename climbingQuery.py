@@ -22,16 +22,13 @@ class ClimbingQuery:
           .. note:: To be changed to SQL database.
           """
           # Import CSV file (should be changed to SQL query)
-          data = pandas.read_csv("routes.csv", sep=',', header=0)          
-          
-          for i, row in data.iterrows():
-               # Unify dates
-               try:
-                    row.date = parser.parse(str(data.date[i]))
-               except ValueError:
-                    # The projects are unclimbed and have no date!
-                    pass
-          
+          data = pandas.read_csv("routes.csv",
+                                 sep=',', # csv file separated by comma
+                                 header=0, # no header column
+                                 parse_dates=["date"] # unify the dates
+                                 # set empty fields to value -1
+          )
+
           # Append a column ole_grade to pandas data frame
           data["ole_grade"]=data["grade"].apply(lambda x: Grade(x).conv_grade())
 
@@ -87,7 +84,8 @@ class ClimbingQuery:
           :param area: Area name, e.g. 'Frankenjura'
           :param grade: Grade, e.g. '8a' or '9+/10-'
           :param style: Onsight 'o.s.' or Flash 'F'
-          :param stars: Number of stars [0,1,2,3]
+          :param stars: Number of stars, routes with stars>=value will
+          be displayed
           :returns: pandas data frame
           """
           kwargs = {'area': area,
@@ -154,11 +152,8 @@ if __name__=="__main__":
      # print(db)
      # print(db.getAllRoutes())
 
-     # print("Display all routes in grade 9+ with 2-3 stars in Franken")
-     # db.display("5.13a",[2,3],"Frankenjura")
-                
      # print("\,Print the crag info of Wüstenstein")
-     db.printCragInfo("Wüstenstein")
+     # db.printCragInfo("Wüstenstein")
                 
      # print("\nPrint the route info of Odins Tafel")
      # db.printRouteInfo("Odins Tafel")
@@ -167,7 +162,7 @@ if __name__=="__main__":
      # db.printRouteNumbers()
 
      # Print project list
-     # print(db.getProjects(area="Frankenjura"))
+     print(db.getProjects(area="Frankenjura"))
 
      # print(db.getFilteredRoutes(area="Frankenjura",stars=3))
      # print(db.getOnsights(area="Frankenjura",grade="9"))

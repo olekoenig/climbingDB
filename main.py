@@ -20,7 +20,7 @@ def arguments():
     parser.add_argument('-a','--area', type=str,
                         help=("Area, e.g. Frankenjura"))
     parser.add_argument('-s','--stars', type=list,
-                        help=("Display starred routes, type in form 1,2,3"))
+                        help=("Display routes with stars >= value"))
     args = parser.parse_args()
     return args
 
@@ -30,21 +30,13 @@ def main():
      # Get command line arguments
      args = arguments()
 
-     if args.grade==None: args.grade="all"
-     if args.area==None: args.area="all"
-     
-     if args.stars==None:
-          args.stars="all"
-     else:
-          args.stars.remove(",")
-          # Transform entries from string to integer
-          args.stars = [int(x) for x in args.stars]
-
-     
      # Import the CSV file
      db=ClimbingQuery()
+     routes = db.getFilteredRoutes(area = args.area,
+                                   stars= args.stars,
+                                   grade= args.grade)
+     print(routes)
 
-     db.display(args.grade,args.stars,args.area)
      # db.get_crag_info("Wüstenstein")
      # db.give_os_F("9-","Frankenjura")
      # db.sort_by_date()
