@@ -19,8 +19,8 @@ def arguments():
                                " or Yosemite grading system"))
     parser.add_argument('-a','--area', type=str,
                         help=("Area, e.g. Frankenjura"))
-    parser.add_argument('-s','--stars', type=list,
-                        help=("Display routes with stars >= value"))
+    parser.add_argument('-s','--stars', type=int,
+                        help=("Display routes with stars 0,1,2 or 3"))
     args = parser.parse_args()
     return args
 

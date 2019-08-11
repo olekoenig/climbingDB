@@ -25,10 +25,9 @@ class ClimbingQuery:
           data = pandas.read_csv("routes.csv",
                                  sep=',', # csv file separated by comma
                                  header=0, # no header column
-                                 parse_dates=["date"] # unify the dates
-                                 # set empty fields to value -1
+                                 parse_dates=["date"], # unify the dates
           )
-
+          
           # Append a column ole_grade to pandas data frame
           data["ole_grade"]=data["grade"].apply(lambda x: Grade(x).conv_grade())
 
@@ -53,7 +52,10 @@ class ClimbingQuery:
           return self.getFilteredRoutes(grade=grade, area=area, style='o.s.')
 
 
-     def printRouteNumbers(self):          
+     def printRouteNumbers(self):
+          """
+          Prints the number of routes in each grade and plots a histogram.
+          """
           print("Number of Routes >= 8a: \t{}".format(len(self.data[self.data.ole_grade>=Grade("8a").conv_grade()])))
           print("Total number of routes: \t{}".format(len(self.data)))
           # Plot the route distribution as matplotlib object (internal pandas function)
@@ -84,8 +86,7 @@ class ClimbingQuery:
           :param area: Area name, e.g. 'Frankenjura'
           :param grade: Grade, e.g. '8a' or '9+/10-'
           :param style: Onsight 'o.s.' or Flash 'F'
-          :param stars: Number of stars, routes with stars>=value will
-          be displayed
+          :param stars: Number of stars [0,1,2,3]
           :returns: pandas data frame
           """
           kwargs = {'area': area,
@@ -96,6 +97,8 @@ class ClimbingQuery:
 
           # Copy the data frame, otherwise it is overridden
           routes = self.data[self.data.project!="X"].copy()
+
+          # Go through the arguments and filter the list accordingly
           for k,v in kwargs.items():
                if v:
                     routes = routes[routes[k] == v]
