@@ -100,6 +100,8 @@ class ClimbingQuery:
 
           # Go through the arguments and filter the list accordingly
           for k,v in kwargs.items():
+               # if v and k=="stars":
+               #      routes = routes[routes[k] >= v] # to display all routes with stars>=value
                if v:
                     routes = routes[routes[k] == v]
           return routes
