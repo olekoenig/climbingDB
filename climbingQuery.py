@@ -13,7 +13,8 @@ class ClimbingQuery:
      def __str__(self):
           return self.getFilteredRoutes().sort_values(by=["ole_grade"]).__str__()
 
-          
+
+     ######### SQL DATABASE FUNCTIONS #########
      def _import_routes(self):
           """
           Import the CSV file.
@@ -34,6 +35,36 @@ class ClimbingQuery:
           return data
 
 
+     def addAscent(self, route, date, style=None, shortnote=None, stars=None, project=None):
+          """
+          This function should:
+          1. Take a route object and go to ROUTES database
+          2. If route is not in DB yet, call addRoute(route) in class Route
+          3. add the ascent with the specified 
+             * style: o.s. or F or NaN (default which means red-point)
+             * shortnote: e.g. trad, soft, hard, R, X, 2.Go, 3.Go, 1day,...
+             * date: should be a datetime object?
+             * project
+          .. todo:: Add personal grades
+          """
+          return False
+
+
+     def addProject(self, route, shortnote=None, stars=None):
+          """
+          Adds a project to the database ASCENTS
+          :param route: A Route object with name,grade,
+          :
+          :returns: addAscent with parameters
+          addAscent in or
+          """
+          return self.addAscent(route=route, style=None,
+                                shortnote=shortnote, date=None,
+                                project="X", stars=stars)
+     
+     ######### END OF SQL DATABASE FUNCTIONS #########
+          
+     
      def getFlashes(self, grade=None, area=None):
           """
           A function to return a route list of flashed routes in an area.

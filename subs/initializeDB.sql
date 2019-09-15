@@ -1,4 +1,4 @@
-create table routes
+create table ROUTES
 (
 NAME varchar,
 GRADE varchar,
@@ -6,7 +6,7 @@ CRAG_ID int, ??? NECESSARY ???
 NOTES varchar,
 )
 
-create table ascent
+create table ASCENTS
 (
 ROUTE_ID int, ??? NECESSARY ???
 STYLE varchar,
@@ -16,7 +16,7 @@ PROJECT char(1),
 STARS int
 )
 
-create table locations
+create table LOCATIONS
 (
 CRAG_ID int,
 CRAG varchar,
