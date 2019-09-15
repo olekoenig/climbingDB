@@ -56,10 +56,12 @@ class ClimbingQuery:
           """
           Prints the number of routes in each grade and plots a histogram.
           """
-          print("Number of Routes >= 8a: \t{}".format(len(self.data[self.data.ole_grade>=Grade("8a").conv_grade()])))
-          print("Total number of routes: \t{}".format(len(self.data)))
+          # Copy the data frame, otherwise it is overridden
+          routes = self.data[self.data.project!="X"].copy()
+          print("Number of Routes >= 8a: \t{}".format(len(routes[routes.ole_grade>=Grade("8a").conv_grade()])))
+          print("Total number of routes: \t{}".format(len(routes)))
           # Plot the route distribution as matplotlib object (internal pandas function)
-          self.data.hist(column="ole_grade",bins=30)
+          routes.hist(column="ole_grade",bins=30)
           plt.show()
 
           
@@ -164,10 +166,10 @@ if __name__=="__main__":
      # db.printRouteInfo("Odins Tafel")
                                 
      # Print route numbers
-     # db.printRouteNumbers()
+     db.printRouteNumbers()
 
      # Print project list
-     print(db.getProjects(area="Frankenjura"))
+     # print(db.getProjects(area="Frankenjura"))
 
      # print(db.getFilteredRoutes(area="Frankenjura",stars=3))
      # print(db.getOnsights(area="Frankenjura",grade="9"))
