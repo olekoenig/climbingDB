@@ -60,6 +60,15 @@ class Route:
         Attention: This function is different from addAscent.
         """
         return False
+
+    def getPrimaryCragKey(self, name):
+        """
+        I think this function is necessary to insert a route into the
+        database. One has to get the CragID to get the reference to
+        LOCATIONS correctly.
+        """
+        return False
+                           
     
 
 if __name__=="__main__":

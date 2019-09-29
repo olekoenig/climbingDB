@@ -50,6 +50,14 @@ class Ascent:
              * project
           .. todo:: Add personal grades
           """
+        RouteID = getRouteID(route)
+        return False
+
+    def getRouteID(self, route):
+        """
+        To add an entry into the database ASCENTS the RouteID is
+        necessary. This function calls the database ROUTES for the RouteID.
+        """
         return False
     
     
