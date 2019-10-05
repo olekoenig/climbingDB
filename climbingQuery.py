@@ -161,12 +161,12 @@ if __name__=="__main__":
                 
      # print("\nPrint the route info of Odins Tafel")
      # db.printRouteInfo("Odins Tafel")
-                                
+
      # Print route numbers
-     db.printRouteNumbers()
+     # db.printRouteNumbers()
 
      # Print project list
      # print(db.getProjects(area="Frankenjura"))
 
-     # print(db.getFilteredRoutes(area="Frankenjura",stars=3))
-     # print(db.getOnsights(area="Frankenjura",grade="9"))
+     print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="9-"))
+     # print(db.getOnsights(grade="9"))
