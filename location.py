@@ -1,6 +1,16 @@
-# from climbingQuery import ClimbingQuery
+from sqlalchemy import Column, String, Text, Integer
 
 class Location:
+
+    __tablename__ = 'LOCATIONS'
+
+    cragID   = Column('cragID', Integer, primary_key=True),
+    crag     = Column('crag', String(50), nullable=False) # e.g. Waldkopf
+    area     = Column('area', String(50), nullable=False), # e.g. Frankenjura
+    country  = Column('country', String(30), nullable=False), # e.g. Germany
+    cragnote = Column('cragnote', Text, nullable=True) # e.g. "Very cool overhang"
+
+    
     def __init__(self, crag, area, country, cragnote=None):
         # for instance: Waldkopf
         self.crag = crag
@@ -30,9 +40,10 @@ class Location:
         return False
         
 
+    
 if __name__=="__main__":
     loc=Location(crag="On The Moon",
                  country="Not Earth",
                  area="The Universe",
-                 cragnote="This is a test crag note")
+                 cragnote="The coolest extraterrestrial climbing crag!")
     print(loc)

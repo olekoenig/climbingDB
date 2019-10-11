@@ -5,6 +5,7 @@ from sqlalchemy import MetaData, Table, String, Column, Text, DateTime, Boolean,
 # from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
+
 def connect2engine():
     """
     Connecting to PostgreSQL server at localhost using psycopg2 DBAPI

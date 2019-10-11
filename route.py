@@ -1,8 +1,18 @@
+from sqlalchemy import Column, String, Text, Integer, ForeignKey
+
 from location import Location
 from grade import Grade
 
 class Route:
 
+    __tablename__ = 'ROUTES'
+    routeID  = Column('routeID', Integer, primary_key=True) # RouteID is unique
+    name     = Column('name', String(50), nullable=False) # A non-unique name of a route
+    grade    = Column('grade', String(10), nullable=False) # A route must have a proposed grade
+    notes    = Column('notes', Text, nullable=True) # string extended further and futher
+    # fkCragID = Column('fkCragID', ForeignKey("LOCATIONS.cragID")) # points to cragID in LOCATIONS DB
+    )
+    
     def __init__(self, name, grade, location, notes=None):
         # name of the route
         self.name = name

@@ -10,6 +10,7 @@ from argparse import RawTextHelpFormatter
 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy import MetaData
 
 from ascent import Ascent, Base
 from climbingQuery import ClimbingQuery # Get query functions
@@ -68,13 +69,19 @@ def main():
                                       stars= args.stars,
                                       grade= args.grade)
         print(routes)
-        
+
     # db.get_crag_info("Wüstenstein")
     # db.give_os_F("9-","Frankenjura")
     # db.sort_by_date()
+
+        
+    ### DATABASE STUFF ###
+    engine, metadata = connect2engine()
+    session = createTablesStartSession(engine)
+        
         
 
-    #To be plotted:
+    ### PLOTTING (export to climbingQuery) ###
     # import plotly
     # import plotly.graph_objs as go
     # import matplotlib.pyplot as plt
