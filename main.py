@@ -1,14 +1,42 @@
 #!/usr/bin/env python3
 
+"""
+main can be used directly from the command line to query the database
+see ./main.py --help
+"""
+
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 
-import plotly
-import plotly.graph_objs as go
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 
-from climbingQuery import ClimbingQuery
+from ascent import Ascent, Base
+from climbingQuery import ClimbingQuery # Get query functions
+
+
+def connect2engine():
+    """
+    Connecting to PostgreSQL server at localhost using psycopg2 DBAPI
+    Syntax: <username>:<password>@<host>/<dbname>
+    Engine object is how to interact with database
+
+    .. note:: Passwort of postgres changed from sudo pw to a new one with "\password postgres"
+
+    :returns: engine, metadata
+    """
+    engine=create_engine("postgresql+psycopg2://postgres:climbingdbPW!@localhost/sandbox")
+    engine.connect()
+    # print(engine)
+    metadata = MetaData()
+    return engine, metadata
+
+
+def createTablesStartSession(engine):
+    Base.metadata.create_all(engine, checkfirst=True)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    return session
 
 
 def arguments():
@@ -47,6 +75,10 @@ def main():
         
 
     #To be plotted:
+    # import plotly
+    # import plotly.graph_objs as go
+    # import matplotlib.pyplot as plt
+    # from mpl_toolkits.mplot3d import Axes3D
     # Onsights, Flashs in different color
     # 3D plot: x=time, y=grade, z=number
     # from grade import French # Plots are in French grading

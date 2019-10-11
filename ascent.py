@@ -1,8 +1,27 @@
 from route import Route
+from location import Location
 from grade import Grade
 
-class Ascent:
+from sqlalchemy import MetaData, Table, String, Column, Text, DateTime, Boolean, Integer, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
 
+Base = declarative_base() # not sure where Base belongs. Should it be
+# in the "deepest" file and then succesively loaded?
+
+class Ascent():
+
+    __tablename__ = 'ASCENT'
+    
+    ascentID  = Column('ascentID', Integer, primary_key=True), # not sure AscentID can be of use
+    # fkRouteID = Column('fkRouteID', Integer, ForeignKey(route.c.routeID)), # points to ROUTES table
+    grade     = Column('grade', String(10), nullable=True), # Each route can have a personal grade
+    style     = Column('style', String(10), nullable=True), # o.s., F., trad, etc.
+    shortnote = Column('shortnote', String(10), nullable=True), # hard, soft, 2. Go, etc.
+    date      = Column('date', DateTime, default=datetime.now),
+    project   = Column('project', Boolean, default=False),
+    stars     = Column('stars', Integer, nullable=True) # stars = 0, 1, 2, or 3
+    
     def __init__(self, route, date,
                  grade=None, style=None, shortnote=None, notes=None, project=None, stars=None):
         """
@@ -12,24 +31,23 @@ class Ascent:
         :param style: optional: None=red-point, o.s., F., 2.Go, 1day, etc.
         :param shortnote: optional: hard, soft, trad, R, X, clean, aid, AF, TR etc.
         :param notes: optional: subjective description of the route
-        :param project: optional: to add a project set to "X"
+        :param project: optional: True or False
         :param stars: optional: from 0,1,2 or 3
         """
         self.name = route.name
         self.grade = Grade(grade)
         self.style = style
 
-        # the crag is divided in Country, Area, Crag and can have a cragnote (string or NaN)
+        # the crag is divided in Country, Area, Crag and can have a cragnote
         self.location = Location(route.location.crag,
                                  route.location.area,
                                  route.location.country,
-                                 cragnote) # where from?
+                                 route.location.cragnote)
 
         self.shortnote = shortnote
         self.notes = notes
         self.date = date
-        # project can have "X" or NaN
-        self.project = project
+        self.project = project # True of False
         self.stars = stars
 
         
@@ -53,6 +71,7 @@ class Ascent:
         RouteID = getRouteID(route)
         return False
 
+    
     def getRouteID(self, route):
         """
         To add an entry into the database ASCENTS the RouteID is
@@ -73,10 +92,28 @@ class Ascent:
                               shortnote=shortnote, date=None,
                               project="X", stars=stars)
 
+    
+    def allInfo(self):
+        return (("Name: {}\nGrade: {}\nStyle: {}\nLocation: {}\n"
+                 "Notes: {}, {}\nDate: {}\nStars: {}").format(self.name, self.grade,
+                                                              self.style, self.location,self.shortnote, self.notes,self.date, self.stars))
+    
+
+    
 
 if __name__=="__main__":
-    ascent=Ascent(name="Schnubbeldibubb", grade="10a", style="On-sight",
-                  crag="On the Moon", area="The Universe",
-                  country="Not Earth", shortnote="hard", notes="Jippy",
-                  date="01-01-2100", project="X", stars="3",
-                  cragnote="This should be removed")
+    ascent=Ascent( route = Route( name="Schnubbeldibubb",
+                                  grade="8a",
+                                  location= Location( crag="On the Moon",
+                                                      area="The Universe",
+                                                      country="Not Earth",
+                                                      cragnote="coolest crag on the moon")),
+                   date = "01-01-2100",
+                   grade = "7c+",
+                   style="o.s.",
+                   shortnote="soft",
+                   notes="soft because of low gravity",
+                   project=False,
+                   stars="3")
+
+    print(ascent.allInfo())

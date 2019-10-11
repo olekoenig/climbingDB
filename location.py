@@ -1,7 +1,7 @@
 # from climbingQuery import ClimbingQuery
 
 class Location:
-    def __init__(self, crag, area, country, cragnote):
+    def __init__(self, crag, area, country, cragnote=None):
         # for instance: Waldkopf
         self.crag = crag
 
@@ -31,6 +31,8 @@ class Location:
         
 
 if __name__=="__main__":
-    loc=Location(crag="On The Moon",country="Not Earth",
-                 area="The Universe",cragnote="This is a test crag note")
+    loc=Location(crag="On The Moon",
+                 country="Not Earth",
+                 area="The Universe",
+                 cragnote="This is a test crag note")
     print(loc)

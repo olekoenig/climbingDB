@@ -2,8 +2,8 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData, Table, String, Column, Text, DateTime, Boolean, Integer, ForeignKey
+# from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
-
 
 def connect2engine():
     """
@@ -22,6 +22,7 @@ def connect2engine():
     return engine, metadata
 
 
+        
 def init_tables(metadata):
     """
     A function to create the Tables LOCATIONS, ROUTES, ASCENTS.
