@@ -1,6 +1,7 @@
 from grade import Grade
 from route import Route
 import pandas
+import matplotlib.pyplot as plt
 
 class ClimbingQuery:
      def __init__(self):
@@ -99,9 +100,9 @@ class ClimbingQuery:
 
           # Go through the arguments and filter the list accordingly
           for k,v in kwargs.items():
-               # if v and k=="stars":
-               #      routes = routes[routes[k] >= v] # to display all routes with stars>=value
-               if v:
+               if v and k=="stars":
+                    routes = routes[routes[k] >= v] # to display all routes with stars>=value
+               elif v:
                     routes = routes[routes[k] == v]
           return routes
                     
@@ -166,7 +167,7 @@ if __name__=="__main__":
      # db.printRouteNumbers()
 
      # Print project list
-     # print(db.getProjects(area="Frankenjura"))
+     print(db.getProjects(area="Frankenjura"))
 
-     print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="9-"))
+     # print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="9-"))
      # print(db.getOnsights(grade="9"))
