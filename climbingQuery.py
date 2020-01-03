@@ -2,6 +2,7 @@ from grade import Grade
 from route import Route
 import pandas
 import matplotlib.pyplot as plt
+from math import isnan
 
 class ClimbingQuery:
      def __init__(self):
@@ -32,7 +33,7 @@ class ClimbingQuery:
           return data
           
      
-     def getFlashes(self, grade=None, area=None):
+     def getFlashes(self, area=None, grade=None):
           """
           A function to return a route list of flashed routes in an area.
           :param grade: The grade, e.g. '7c' or '9' or '5.12d'
@@ -41,7 +42,7 @@ class ClimbingQuery:
           return self.getFilteredRoutes(grade=grade, area=area, style='F')
 
      
-     def getOnsights(self, grade=None, area=None):
+     def getOnsights(self, area=None, grade=None):
           """
           A function to return a route list of onsighted routes in an area.
           :param grade: The grade, e.g. '7c' or '9' or '5.12d'
@@ -61,6 +62,7 @@ class ClimbingQuery:
           # Plot the route distribution as matplotlib object (internal pandas function)
           routes.hist(column="ole_grade",bins=30)
           plt.show()
+          return None
 
           
      def getAllRoutes(self, area=None):
@@ -107,43 +109,34 @@ class ClimbingQuery:
           return routes
                     
 
-     def printCragInfo(self, cragname):
+     def getCragInfo(self, cragname):
           """
           Prints the info about a crag.
 
           .. note:: To be changed to SQL query.
           """
-          info=None
-          for i, route in self.data.iterrows():
-               if route.crag == cragname:
-                    try:
-                         m.isnan(route.cragnote)
-                    except TypeError:
-                         info=route.cragnote
-                         break
-          if info==None:
-               print("No information about the crag", cragname, "available")
+          info=self.data[self.data.crag==cragname]
+          if info.cragnote.any()==False:
+               exit("No information about the route "+cragname+" available")
           else:
-               print(info)
-               return info
-
-     def printRouteInfo(self,routename):
-          info=None
-          for route in self.routelist:
-               if route.name==routename:
-                    info=route.allInfo()
-                    break
-          if info==None:
-               print("No information about the route", routename, "available")
+               return info.cragnote.all()
+          
+          
+     def getRouteInfo(self,routename):
+          """
+          Get the logged information about a route.
+          """
+          info=self.data[self.data.name==routename]
+          if info.notes.any()==False:
+               exit("No information about the route "+routename+" available")
           else:
-               print(info)
-               return info
+               return info.notes.all()
           
 
      def sort_by_date(self):
           # Sort the list by the date of the ascent
           # TO BE IMPLEMENTED
-          return 0
+          return False
           
           # Sum up periods of one month
           # Add slash grades to upper grade
@@ -158,16 +151,17 @@ if __name__=="__main__":
      # print(db.getAllRoutes())
 
      # print("\,Print the crag info of Wüstenstein")
-     # db.printCragInfo("Wüstenstein")
+     # print(db.getCragInfo("Wüstenstein"))
                 
      # print("\nPrint the route info of Odins Tafel")
-     # db.printRouteInfo("Odins Tafel")
+     # print(db.getRouteInfo("Odins Tafel"))
 
      # Print route numbers
      # db.printRouteNumbers()
 
      # Print project list
-     print(db.getProjects(area="Frankenjura"))
+     # print(db.getProjects(area="Frankenjura"))
 
      # print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="9-"))
      # print(db.getOnsights(grade="9"))
+     print(db.getFlashes(grade="8a"))

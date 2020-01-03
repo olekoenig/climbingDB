@@ -50,6 +50,15 @@ def arguments():
                         help=("Area, e.g. Frankenjura"))
     parser.add_argument('-s','--stars', type=int,
                         help=("Display routes with stars 0,1,2 or 3"))
+    parser.add_argument('--style', type=str,
+                        help=("e.g. o.s., F., 2. Go, 1 day"))
+    parser.add_argument('--getFlashes', action='store_true')
+    parser.add_argument('--getOnsights', action='store_true')
+    parser.add_argument('--printRouteNumbers', action='store_true')
+    parser.add_argument('--getAllRoutes', action='store_true')
+    parser.add_argument('--getProjects', action='store_true')
+    parser.add_argument('--getCragInfo', type=str)
+    parser.add_argument('--getRouteInfo', type=str)
     args = parser.parse_args()
     return args
 
@@ -61,18 +70,28 @@ def main():
     
     # Import the CSV file
     db=ClimbingQuery()
-    if args.stars==None and args.area==None and args.grade==None:
-        # I'm sure this if statement can be made nicer...
-        print(db.getAllRoutes()) # ordered by grade!
+
+    # Test for the different arguments
+    if args==None or args.getAllRoutes:
+        routes=db.getAllRoutes(area=args.area) # print routes ordered by grade
+    elif args.getFlashes:
+        routes=db.getFlashes(area=args.area,grade=args.grade)
+    elif args.getOnsights:
+        routes=db.getOnsights(area=args.area,grade=args.grade)
+    elif args.printRouteNumbers:
+        routes=db.printRouteNumbers()
+    elif args.getProjects:
+        routes=db.getProjects(area=args.area)
+    elif args.getCragInfo:
+        routes=db.getCragInfo(args.getCragInfo)
+    elif args.getRouteInfo:
+        routes=db.getRouteInfo(args.getRouteInfo)
     else:
         routes = db.getFilteredRoutes(area = args.area,
                                       stars= args.stars,
-                                      grade= args.grade)
-        print(routes)
-
-    # db.get_crag_info("Wüstenstein")
-    # db.give_os_F("9-","Frankenjura")
-    # db.sort_by_date()
+                                      grade= args.grade,
+                                      style= args.style)
+    print(routes)
 
         
     ### DATABASE STUFF ###
