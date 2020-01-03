@@ -21,7 +21,7 @@ class ClimbingQuery:
           .. note:: To be changed to SQL database.
           """
           # Import CSV file (should be changed to SQL query)
-          data = pandas.read_csv("routes.csv",
+          data = pandas.read_csv("../data/routes.csv",
                                  sep=',', # csv file separated by comma
                                  header=0, # no header column
                                  parse_dates=["date"], # unify the dates
