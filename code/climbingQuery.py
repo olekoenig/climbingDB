@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 from math import isnan
 
 class ClimbingQuery:
+     """
+     A class to perform queries in the climbing database.
+     """
+
      def __init__(self):
           self.data = self._import_routes()
 
