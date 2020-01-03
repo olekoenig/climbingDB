@@ -2,26 +2,25 @@ from route import Route
 from location import Location
 from grade import Grade
 
-from sqlalchemy import MetaData, String, Column, Text, DateTime, Boolean, Integer, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from datetime import datetime
-
-Base = declarative_base() # not sure where Base belongs. Should it be
-# in the "deepest" file and then succesively loaded?
+# from sqlalchemy import MetaData, String, Column, Text, DateTime, Boolean, Integer, ForeignKey
+# from sqlalchemy.ext.declarative import declarative_base
+# from datetime import datetime
+# Base = declarative_base() # not sure where Base belongs. Should it be
+# # in the "deepest" file and then succesively loaded?
 
 class Ascent():
 
-    __tablename__ = 'ASCENTS'
+    # __tablename__ = 'ASCENTS'
     
-    ascentID  = Column('ascentID', Integer, primary_key=True) # not sure AscentID can be of use
-    # How to implement Foreign Key???
-    # fkRouteID = Column('fkRouteID', Integer, ForeignKey("ROUTES.routeID")) # points to ROUTES table
-    grade     = Column('grade', String(10), nullable=True) # Each route can have a personal grade
-    style     = Column('style', String(10), nullable=True) # o.s., F., trad, etc.
-    shortnote = Column('shortnote', String(10), nullable=True) # hard, soft, 2. Go, etc.
-    date      = Column('date', DateTime, default=datetime.now)
-    project   = Column('project', Boolean, default=False)
-    stars     = Column('stars', Integer, nullable=True) # stars = 0, 1, 2, or 3
+    # ascentID  = Column('ascentID', Integer, primary_key=True) # not sure AscentID can be of use
+    # # How to implement Foreign Key???
+    # # fkRouteID = Column('fkRouteID', Integer, ForeignKey("ROUTES.routeID")) # points to ROUTES table
+    # grade     = Column('grade', String(10), nullable=True) # Each route can have a personal grade
+    # style     = Column('style', String(10), nullable=True) # o.s., F., trad, etc.
+    # shortnote = Column('shortnote', String(10), nullable=True) # hard, soft, 2. Go, etc.
+    # date      = Column('date', DateTime, default=datetime.now)
+    # project   = Column('project', Boolean, default=False)
+    # stars     = Column('stars', Integer, nullable=True) # stars = 0, 1, 2, or 3
 
     # should launch connect_engine here?
     
@@ -59,46 +58,48 @@ class Ascent():
                                             self.style, self. shortnote)
 
     
-    def addAscent(self, route, date, style=None, shortnote=None, stars=None, project=None):
-        """
-          This function should:
-          1. Take a route object and go to ROUTES database
-          2. If route is not in DB yet, call addRoute(route) in class Route
-          3. add the ascent with the specified 
-             * style: o.s. or F or NaN (default which means red-point)
-             * shortnote: e.g. trad, soft, hard, R, X, 2.Go, 3.Go, 1day,...
-             * date: should be a datetime object?
-             * project
-          """
-        RouteID = getRouteID(route)
-        return False
+    # def addAscent(self, route, date, style=None, shortnote=None, stars=None, project=None):
+    #     """
+    #       This function should:
+    #       1. Take a route object and go to ROUTES database
+    #       2. If route is not in DB yet, call addRoute(route) in class Route
+    #       3. add the ascent with the specified 
+    #          * style: o.s. or F or NaN (default which means red-point)
+    #          * shortnote: e.g. trad, soft, hard, R, X, 2.Go, 3.Go, 1day,...
+    #          * date: should be a datetime object?
+    #          * project
+    #       """
+    #     RouteID = getRouteID(route)
+    #     return False
 
     
-    def getRouteID(self, route):
-        """
-        To add an entry into the table ASCENTS the RouteID is
-        necessary. This function calls the table ROUTES for the RouteID.
-        """
-        return False
+    # def getRouteID(self, route):
+    #     """
+    #     To add an entry into the table ASCENTS the RouteID is
+    #     necessary. This function calls the table ROUTES for the RouteID.
+    #     """
+    #     return False
     
     
-    def addProject(self, route, shortnote=None, stars=None):
-        """
-          Adds a project to the table ASCENTS
-          :param route: A Route object with name,grade,
-          :
-          :returns: addAscent with parameters
-          addAscent in or
-        """
-        return self.addAscent(route=route, style=None,
-                              shortnote=shortnote, date=None,
-                              project="X", stars=stars)
+    # def addProject(self, route, shortnote=None, stars=None):
+    #     """
+    #       Adds a project to the table ASCENTS
+    #       :param route: A Route object with name,grade,
+    #       :
+    #       :returns: addAscent with parameters
+    #       addAscent in or
+    #     """
+    #     return self.addAscent(route=route, style=None,
+    #                           shortnote=shortnote, date=None,
+    #                           project="X", stars=stars)
 
     
     def allInfo(self):
         return (("Name: {}\nGrade: {}\nStyle: {}\nLocation: {}\n"
-                 "Notes: {}, {}\nDate: {}\nStars: {}").format(self.name, self.grade,
-                                                              self.style, self.location,self.shortnote, self.notes,self.date, self.stars))
+                 "Notes: {}, {}\nDate: {}\nStars: "
+                 "{}").format(self.name, self.grade, self.style,
+                             self.location, self.shortnote, self.notes,self.date,
+                             self.stars))
     
 
     

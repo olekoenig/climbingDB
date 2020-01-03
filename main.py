@@ -8,36 +8,12 @@ see ./main.py --help
 from argparse import ArgumentParser
 from argparse import RawTextHelpFormatter
 
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-from sqlalchemy import MetaData
+# from sqlalchemy.orm import sessionmaker
+# from sqlalchemy import create_engine
+# from sqlalchemy import MetaData
+# from ascent import Ascent, Base
 
-from ascent import Ascent, Base
 from climbingQuery import ClimbingQuery # Get query functions
-
-
-def connect2engine():
-    """
-    Connecting to PostgreSQL server at localhost using psycopg2 DBAPI
-    Syntax: <username>:<password>@<host>/<dbname>
-    Engine object is how to interact with database
-
-    .. note:: Passwort of postgres changed from sudo pw to a new one with "\password postgres"
-
-    :returns: engine, metadata
-    """
-    engine=create_engine("postgresql+psycopg2://postgres:climbingdbPW!@localhost/sandbox")
-    engine.connect()
-    # print(engine)
-    metadata = MetaData()
-    return engine, metadata
-
-
-def createTablesStartSession(engine):
-    Base.metadata.create_all(engine, checkfirst=True)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    return session
 
 
 def arguments():
@@ -61,6 +37,31 @@ def arguments():
     parser.add_argument('--getRouteInfo', type=str)
     args = parser.parse_args()
     return args
+
+
+# def connect2engine():
+#     """
+#     Connecting to PostgreSQL server at localhost using psycopg2 DBAPI
+#     Syntax: <username>:<password>@<host>/<dbname>
+#     Engine object is how to interact with database
+
+#     .. note:: Passwort of postgres changed from sudo pw to a new one with "\password postgres"
+
+#     :returns: engine, metadata
+#     """
+#     engine=create_engine("postgresql+psycopg2://postgres:climbingdbPW!@localhost/sandbox")
+#     engine.connect()
+#     # print(engine)
+#     metadata = MetaData()
+#     return engine, metadata
+
+
+# def createTablesStartSession(engine):
+#     Base.metadata.create_all(engine, checkfirst=True)
+#     Session = sessionmaker(bind=engine)
+#     session = Session()
+#     return session
+
 
 
 
@@ -95,8 +96,8 @@ def main():
 
         
     ### DATABASE STUFF ###
-    engine, metadata = connect2engine()
-    session = createTablesStartSession(engine)
+    # engine, metadata = connect2engine()
+    # session = createTablesStartSession(engine)
         
         
 
