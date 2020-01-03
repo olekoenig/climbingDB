@@ -7,10 +7,15 @@ Welcome to climbingDB's documentation!
 ======================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
+   scripts/main.rst
    scripts/climbingQuery.rst
+   scripts/route.rst
+   scripts/grade.rst
+   scripts/ascent.rst
+   scripts/location.rst
 
    
 Indices and tables
