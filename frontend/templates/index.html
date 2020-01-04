@@ -1,0 +1,36 @@
+<html>
+  <body>
+    <div style="float:left;">
+      <form>
+	<a href='/boulders'>all</a>
+	<select id=grade>
+	  <option value="8a" selected>8a</option>
+	  <option value="8a+">8a+</option>
+	  <option value="7c+">7c+</option>
+	  <option value="7c">7c</option>
+	</select>
+	<!-- ToDo: pipe input of drop-down menu into url path, e.g., /onsights/Frankenjura -->
+	<a href='/boulders/onsights'>on-sights</a>
+	<a href='/boulders/flashes/Frankenjura'>flashes</a>
+    </div>
+    </form>
+
+    <div style="float:left;">
+      {{ boulders | safe }}
+      <!-- <table id="table_id"> -->
+      <!-- 	<thead> -->
+      <!-- 	  <tr> -->
+      <!--       <th scope="#">name</th> -->
+      <!--       <th scope="#">grade</th> -->
+      <!-- 	  </tr> -->
+      <!-- 	</thead> -->
+      <!-- 	{% for boulder in boulders %} -->
+      <!-- 	<tr> -->
+      <!--     <td>{{boulder.name}}</td> -->
+      <!--     <td>{{boulder.grade}}</td> -->
+      <!-- 	</tr> -->
+      <!-- 	{% endfor %} -->
+      <!-- </table> -->
+    </div>
+  </body>
+</html>
