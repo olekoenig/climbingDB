@@ -17,24 +17,33 @@ from climbingQuery import ClimbingQuery # Get query functions
 
 
 def arguments():
-    parser = ArgumentParser(description = ("Ole's climbing database"),
+    parser = ArgumentParser(description="Ole's climbing database",
                              formatter_class=RawTextHelpFormatter)
     parser.add_argument('-g','--grade', type=str,
-                         help=("Set grades to display in Frensh, UIAA,"
-                               " or Yosemite grading system"))
+                         help=("Set grades in Frensh, UIAA, or "
+                               "Yosemite grading system, e.g., 8a"))
     parser.add_argument('-a','--area', type=str,
-                        help=("Area, e.g. Frankenjura"))
+                        help="Area, e.g., Frankenjura")
     parser.add_argument('-s','--stars', type=int,
-                        help=("Display routes with stars 0,1,2 or 3"))
+                        help="Print routes with stars>=0,1,2 or 3")
     parser.add_argument('--style', type=str,
-                        help=("e.g. o.s., F., 2. Go, 1 day"))
-    parser.add_argument('--getFlashes', action='store_true')
-    parser.add_argument('--getOnsights', action='store_true')
-    parser.add_argument('--printRouteNumbers', action='store_true')
-    parser.add_argument('--getAllRoutes', action='store_true')
-    parser.add_argument('--getProjects', action='store_true')
-    parser.add_argument('--getCragInfo', type=str)
-    parser.add_argument('--getRouteInfo', type=str)
+                        help="e.g., o.s., F., 2. Go, 1 day")
+    parser.add_argument('--getFlashes', action='store_true',
+                        help=("Print all routes climbed in style F.\n"
+                              "can be used in connection with --area and --grade"))
+    parser.add_argument('--getOnsights', action='store_true',
+                        help=("Print all routes climbed in style o.s.\n"
+                              "can be used in connection with --area and --grade"))
+    parser.add_argument('--printRouteNumbers', action='store_true',
+                        help=("Prints the number of routes in each grade and plots a histogram"))
+    parser.add_argument('--getAllRoutes', action='store_true',
+                        help=("Prints a complete route list of an area\n"
+                              "can be used in connection with --area"))
+    parser.add_argument('--getProjects', action='store_true',
+                        help=("Returns the project list of an area\n"
+                              "can be used in connection with --area"))
+    parser.add_argument('--getCragInfo', type=str, help="Prints the info about a crag")
+    parser.add_argument('--getRouteInfo', type=str, help="Get the logged information about a route")
     args = parser.parse_args()
     return args
 

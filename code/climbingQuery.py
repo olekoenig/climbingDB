@@ -1,5 +1,5 @@
 from grade import Grade
-from route import Route
+# from route import Route
 import pandas
 import matplotlib.pyplot as plt
 from math import isnan
@@ -63,8 +63,23 @@ class ClimbingQuery:
           routes = self.data[self.data.project!="X"].copy()
           print("Number of Routes >= 8a: \t{}".format(len(routes[routes.ole_grade>=Grade("8a").conv_grade()])))
           print("Total number of routes: \t{}".format(len(routes)))
+
           # Plot the route distribution as matplotlib object (internal pandas function)
-          routes.hist(column="ole_grade",bins=30)
+          # routes.hist(column="ole_grade",bins=30)
+          # plt.show()
+
+          fig, ax = plt.subplots(figsize=(20,10))
+          grades=('4a','5a','6a','6b','6c','7a','7a+','7b','7b+',
+                  '7c','7c+','8a','8a+','8b','8b+','8c')
+          pos_x=[Grade(xx).conv_grade() for xx in grades]
+          for ii in range(1,len(grades)-1,1):
+               g=Grade(grades[ii]).conv_grade()
+               gup=Grade(grades[ii+1]).conv_grade()
+               glo=Grade(grades[ii-1]).conv_grade()
+               ax.bar(g, len(routes[routes.ole_grade==g]))
+
+          ax.set_xticks(pos_x)
+          ax.set_xticklabels(grades)
           plt.show()
           return None
 
@@ -152,20 +167,20 @@ if __name__=="__main__":
      print("Testing class climbingQuery")
      db=ClimbingQuery()
      # print(db)
-     # print(db.getAllRoutes())
+     print(db.getAllRoutes())
 
-     # print("\,Print the crag info of Wüstenstein")
-     # print(db.getCragInfo("Wüstenstein"))
+     print("\nPrint the crag info of Wüstenstein")
+     print(db.getCragInfo("Wüstenstein"))
                 
-     # print("\nPrint the route info of Odins Tafel")
-     # print(db.getRouteInfo("Odins Tafel"))
+     print("\nPrint the route info of Odins Tafel")
+     print(db.getRouteInfo("Odins Tafel"))
 
      # Print route numbers
-     # db.printRouteNumbers()
+     db.printRouteNumbers()
 
      # Print project list
-     # print(db.getProjects(area="Frankenjura"))
+     print(db.getProjects(area="Frankenjura"))
 
-     # print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="9-"))
-     # print(db.getOnsights(grade="9"))
+     print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="9-"))
+     print(db.getOnsights(grade="9"))
      print(db.getFlashes(grade="8a"))
