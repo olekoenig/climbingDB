@@ -43,7 +43,8 @@ class ClimbingQuery:
           :param grade: The grade, e.g. '7c' or '9' or '5.12d'
           :param area: Area name, e.g. "Frankenjura"
           """
-          return self.getFilteredRoutes(grade=grade, area=area, style='F')
+          flashes=self.getFilteredRoutes(grade=grade, area=area, style='F')
+          return flashes.sort_values(by=["ole_grade"])
 
      
      def getOnsights(self, area=None, grade=None):
@@ -52,7 +53,8 @@ class ClimbingQuery:
           :param grade: The grade, e.g. '7c' or '9' or '5.12d'
           :param area: Area name, e.g. "Frankenjura"
           """
-          return self.getFilteredRoutes(grade=grade, area=area, style='o.s.')
+          onsights=self.getFilteredRoutes(grade=grade, area=area, style='o.s.')
+          return onsights.sort_values(by=["ole_grade"])
 
 
      def printRouteNumbers(self):
@@ -85,10 +87,11 @@ class ClimbingQuery:
 
           
      def getAllRoutes(self, area=None):
+          """Returns the complete route list in an area.  Has to be a pandas
+          data frame in order for the to_html() in frontend.py
+          function to work.
           """
-          Returns the complete route list in an area.
-          """
-          return self.getFilteredRoutes(area=area).sort_values(by=["ole_grade"]).__str__()
+          return self.getFilteredRoutes(area=area).sort_values(by=["ole_grade"])#.__str__()
 
      
      def getProjects(self, area=None):
@@ -98,16 +101,19 @@ class ClimbingQuery:
           projects = self.data[self.data.project=="X"]
           if area:
                projects = projects[projects.area==area]
-          return projects
+          return projects.sort_values(by=["ole_grade"])
 
      
-     def getFilteredRoutes(self, area=None, grade=None, style=None, stars=None):
+     def getFilteredRoutes(self, area=None, grade=None, style=None,
+                           stars=None, operation="=="):
           """
           Return a route list under the applied filters.
           :param area: Area name, e.g. 'Frankenjura'
           :param grade: Grade, e.g. '8a' or '9+/10-'
           :param style: Onsight 'o.s.' or Flash 'F'
           :param stars: Number of stars [0,1,2,3]
+          :param operation: logic operation applied to grade (>,<,==)
+                           [default: ==], currently supported: ==,>=
           :returns: pandas data frame
           """
           kwargs = {'area': area,
@@ -118,16 +124,18 @@ class ClimbingQuery:
 
           # Copy the data frame, otherwise it is overridden
           routes = self.data[self.data.project!="X"].copy()
-
+          
           # Go through the arguments and filter the list accordingly
           for k,v in kwargs.items():
-               if v and k=="stars":
-                    routes = routes[routes[k] >= v] # to display all routes with stars>=value
+               if v and k=="stars" or (k=="ole_grade" and operation==">="):
+                    # applies if stars set: display routes with stars>=value
+                    routes = routes[routes[k] >= v]
                elif v:
                     routes = routes[routes[k] == v]
-          return routes
                     
-
+          return routes.sort_values(by=["ole_grade"])
+     
+     
      def getCragInfo(self, cragname):
           """
           Prints the info about a crag.
@@ -167,20 +175,20 @@ if __name__=="__main__":
      print("Testing class climbingQuery")
      db=ClimbingQuery()
      # print(db)
-     print(db.getAllRoutes())
+     # print(db.getAllRoutes())
 
-     print("\nPrint the crag info of Wüstenstein")
-     print(db.getCragInfo("Wüstenstein"))
+     # print("\nPrint the crag info of Wüstenstein")
+     # print(db.getCragInfo("Wüstenstein"))
                 
-     print("\nPrint the route info of Odins Tafel")
-     print(db.getRouteInfo("Odins Tafel"))
+     # print("\nPrint the route info of Odins Tafel")
+     # print(db.getRouteInfo("Odins Tafel"))
 
      # Print route numbers
-     db.printRouteNumbers()
+     # db.printRouteNumbers()
 
      # Print project list
-     print(db.getProjects(area="Frankenjura"))
+     # print(db.getProjects(area="Frankenjura"))
 
-     print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="9-"))
-     print(db.getOnsights(grade="9"))
-     print(db.getFlashes(grade="8a"))
+     print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="8a+",operation=">="))
+     # print(db.getOnsights(grade="9"))
+     # print(db.getFlashes(grade="8a"))
