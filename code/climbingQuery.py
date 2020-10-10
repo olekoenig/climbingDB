@@ -142,14 +142,20 @@ class ClimbingQuery:
           
           # Go through the arguments and filter the list accordingly
           for k,v in kwargs.items():
+               
                if v and k=="stars" or (k=="ole_grade" and operation==">="):
                     # applies if stars set: display routes with stars>=value
                     # or applies if operation is larger-equal and grade set
                     routes = routes[routes[k] >= v]
+
+               elif v and k=="ole_grade":
+                    # HACK: try to display, e.g., also 9/9+ routes if grade=9
+                    routes = routes[(routes[k]==v) | (routes[k]==v+0.5)]
+                    
                elif v:
                     routes = routes[routes[k] == v]
                     
-          return routes.sort_values(by=["ole_grade"])
+          return routes.sort_values(by=["stars"]) # or ole_grade
      
      
      def getCragInfo(self, cragname):
