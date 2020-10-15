@@ -49,26 +49,6 @@ class ClimbingQuery:
           df['notes'] = df['notes'].astype(object).fillna("")
 
           return df
-          
-     
-     def getFlashes(self, area=None, grade=None):
-          """A function to return a route list of flashed routes in an area.
-
-          :param grade: The grade, e.g. '7c' or '9' or '5.12d'
-          :param area: Area name, e.g. "Frankenjura"
-          """
-          flashes=self.getFilteredRoutes(grade=grade, area=area, style='F')
-          return flashes.sort_values(by=["ole_grade"])
-
-     
-     def getOnsights(self, area=None, grade=None):
-          """A function to return a route list of onsighted routes in an area.
-
-          :param grade: The grade, e.g. '7c' or '9' or '5.12d'
-          :param area: Area name, e.g. "Frankenjura"
-          """
-          onsights=self.getFilteredRoutes(grade=grade, area=area, style='o.s.')
-          return onsights.sort_values(by=["ole_grade"])
 
 
      def printRouteNumbers(self):
@@ -108,22 +88,7 @@ class ClimbingQuery:
           ax.set_xticklabels(grades)
           plt.show()
 
-          
-     def getAllRoutes(self, area=None):
-          """Returns the complete route list in an area.  Has to be a pandas
-          data frame in order for the to_html() in frontend.py
-          function to work.
-          """
-          return self.getFilteredRoutes(area=area).sort_values(by=["ole_grade"])#.__str__()
 
-
-     def getAllAreas(self):
-          """To be implemented, should be exported to location.py at
-          some point. Needed for a drop-down menu to select routes of
-          a certain area."""
-          return False
-     
-     
      def getProjects(self, area=None):
           """Returns the project list in an area."""
           projects = self.data[self.data.project=="X"]
@@ -207,7 +172,6 @@ if __name__=="__main__":
      print("Testing class climbingQuery")
      db=ClimbingQuery()
      # print(db)
-     # print(db.getAllRoutes())
 
      # print("\nPrint the crag info of Wüstenstein")
      # print(db.getCragInfo("Wüstenstein"))
@@ -222,5 +186,3 @@ if __name__=="__main__":
      # print(db.getProjects(area="Frankenjura"))
 
      print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="8a+",operation=">="))
-     # print(db.getOnsights(grade="9"))
-     # print(db.getFlashes(grade="8a"))

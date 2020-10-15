@@ -20,23 +20,23 @@ def index():
 
 @app.route('/routes')
 def routes():
-    routes=db.getAllRoutes()
+    routes=db.getFilteredRoutes()
     return render_template("index.html",routes=routes.to_html())
 
 
 @app.route('/routes/onsights/')
 def routesonsights():
-    routes=db.getOnsights()
+    routes=db.getFilteredRoutes(style="o.s.")
     return render_template("index.html",routes=routes.to_html())
 
 # @app.route('/routes/flashes/<int:grade>/<string:area>')
 # def routesflashes(grade, area):
-#     routes=db.getFlashes(area=area, grade=grade)
+#     routes=db.getFilteredRoutes(style="F")
     
 
 @app.route('/routes/flashes/<string:area>')
 def routesflashes(area):
-    routes=db.getFlashes(area=area)
+    routes=db.getFilteredRoutes(style="F",area=area)
     return render_template("index.html",routes=routes.to_html())
 
 @app.route('/projects/<string:area>')

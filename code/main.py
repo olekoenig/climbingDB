@@ -20,7 +20,7 @@ def arguments():
     parser = ArgumentParser(description="Ole's climbing database",
                              formatter_class=RawTextHelpFormatter)
     parser.add_argument('-g','--grade', type=str,
-                         help=("Set grades in Frensh, UIAA, or "
+                         help=("Set grades in French, UIAA, or "
                                "Yosemite grading system, e.g., 8a"))
     parser.add_argument('-a','--area', type=str,
                         help="Area, e.g., Frankenjura")
@@ -28,17 +28,8 @@ def arguments():
                         help="Print routes with stars>=0,1,2 or 3")
     parser.add_argument('--style', type=str,
                         help="e.g., o.s., F., 2. Go, 1 day")
-    parser.add_argument('--getFlashes', action='store_true',
-                        help=("Print all routes climbed in style F.\n"
-                              "can be used in connection with --area and --grade"))
-    parser.add_argument('--getOnsights', action='store_true',
-                        help=("Print all routes climbed in style o.s.\n"
-                              "can be used in connection with --area and --grade"))
     parser.add_argument('--printRouteNumbers', action='store_true',
                         help=("Prints the number of routes in each grade and plots a histogram"))
-    parser.add_argument('--getAllRoutes', action='store_true',
-                        help=("Prints a complete route list of an area\n"
-                              "can be used in connection with --area"))
     parser.add_argument('--getProjects', action='store_true',
                         help=("Returns the project list of an area\n"
                               "can be used in connection with --area"))
@@ -82,13 +73,7 @@ def main():
     db=ClimbingQuery()
 
     # Test for the different arguments
-    if args==None or args.getAllRoutes:
-        routes=db.getAllRoutes(area=args.area) # print routes ordered by grade
-    elif args.getFlashes:
-        routes=db.getFlashes(area=args.area,grade=args.grade)
-    elif args.getOnsights:
-        routes=db.getOnsights(area=args.area,grade=args.grade)
-    elif args.getProjects:
+    if args.getProjects:
         routes=db.getProjects(area=args.area)
     elif args.printRouteNumbers:
         return db.printRouteNumbers()
