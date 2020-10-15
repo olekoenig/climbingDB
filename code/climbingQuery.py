@@ -1,8 +1,8 @@
 from grade import Grade, French
-# from route import Route
+
 import pandas
 import matplotlib.pyplot as plt
-from math import isnan
+
 
 class ClimbingQuery:
      """
@@ -24,17 +24,31 @@ class ClimbingQuery:
 
           :returns: data (Pandas data frame)
           """
-          # Import CSV file (should be changed to SQL query)
-          data = pandas.read_csv("../data/routes.csv",
+
+          # Import CSV file (should be changed to SQL query) ###########################################################
+          # Read in sport climbing routes
+          df = pandas.read_csv("../data/routes.csv",
                                  sep=',', # csv file separated by comma
                                  header=0, # no header column
                                  parse_dates=["date"], # unify the dates
-          )
-          
-          # Append a column ole_grade to pandas data frame
-          data["ole_grade"]=data["grade"].apply(lambda x: Grade(x).conv_grade())
+                                 )
 
-          return data
+          # Read in multipitch routes
+          df_multipitches = pandas.read_csv("../data/multipitches.csv",sep=',',header=0,parse_dates=["date"])
+
+          # Merge the two dataframe
+          df=df.append(df_multipitches, sort=True)
+
+          # Append a column ole_grade to pandas data frame
+          df["ole_grade"]=df["grade"].apply(lambda x: Grade(x).conv_grade())
+
+          # Set the NaN values to "" or 0
+          df['stars']=df['stars'].fillna(0)
+          df['style']=df['style'].astype(object).fillna("")
+          df['shortnote'] = df['shortnote'].astype(object).fillna("")
+          df['notes'] = df['notes'].astype(object).fillna("")
+
+          return df
           
      
      def getFlashes(self, area=None, grade=None):
@@ -93,8 +107,7 @@ class ClimbingQuery:
           ax.set_xticks(pos_x)
           ax.set_xticklabels(grades)
           plt.show()
-          return None
-     
+
           
      def getAllRoutes(self, area=None):
           """Returns the complete route list in an area.  Has to be a pandas
@@ -155,7 +168,7 @@ class ClimbingQuery:
                elif v:
                     routes = routes[routes[k] == v]
                     
-          return routes.sort_values(by=["stars"]) # or ole_grade
+          return routes.sort_values(by=["ole_grade"])
      
      
      def getCragInfo(self, cragname):
@@ -165,18 +178,18 @@ class ClimbingQuery:
           """
           info=self.data[self.data.crag==cragname]
           if info.cragnote.any()==False:
-               exit("No information about the route "+cragname+" available")
+               print("No information about the route "+cragname+" available")
           else:
-               return info.cragnote.all()
+               print(info.cragnote.all())
           
           
      def getRouteInfo(self,routename):
           """Get the logged information about a route."""
           info=self.data[self.data.name==routename]
           if info.notes.any()==False:
-               exit("No information about the route "+routename+" available")
+               print("No information about the route "+routename+" available")
           else:
-               return info.notes.all()
+               print(info.notes.all())
           
 
      def sort_by_date(self):

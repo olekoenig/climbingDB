@@ -164,7 +164,7 @@ class Grade:
         elif status == "undetermined":
             status = "UIAA"
         else:
-            print("Could not identify the region.")
+            print("Could not identify the difficulty scale.")
         return status
 
     
@@ -176,14 +176,20 @@ class Grade:
             'YDS': YDS
         }
 
-        if self.value in conversions[region]:
-            return conversions[region][self.value]
-        else:
+        # Handle the aid climbing scale: If the route is, e.g., 5.8 C2, treat it as 5.8 instead
+        if ("R" in self.value or "C" in self.value or "A" in self.value):
+            self.value = self.value.split(" ")[0]
+
+        # Test if the grade is in Ole's grade conversion table
+        if self.value not in conversions[region]:
             # print("The conversion factor", self.value, "is not in the dictonary, setting grade to 0")
             return 0
 
+        return conversions[region][self.value]
+
 
 if __name__ == "__main__":
-    test = Grade("5.13")
-    #print(test.conv_grade())
-    print(test.get_scale())
+    test = Grade("5.13a")
+    print("Input: 5.13a")
+    print("The infered grading scale is {}".format(test.get_scale()))
+    print("{} is translated to {} in Ole's internal scale".format(test,test.conv_grade()))

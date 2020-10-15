@@ -77,7 +77,7 @@ def arguments():
 def main():
     # Get command line arguments
     args = arguments()
-    
+
     # Import the CSV file
     db=ClimbingQuery()
 
@@ -88,20 +88,22 @@ def main():
         routes=db.getFlashes(area=args.area,grade=args.grade)
     elif args.getOnsights:
         routes=db.getOnsights(area=args.area,grade=args.grade)
-    elif args.printRouteNumbers:
-        routes=db.printRouteNumbers()
     elif args.getProjects:
         routes=db.getProjects(area=args.area)
+    elif args.printRouteNumbers:
+        return db.printRouteNumbers()
     elif args.getCragInfo:
-        routes=db.getCragInfo(args.getCragInfo)
+        return db.getCragInfo(args.getCragInfo)
     elif args.getRouteInfo:
-        routes=db.getRouteInfo(args.getRouteInfo)
+        return db.getRouteInfo(args.getRouteInfo)
     else:
         routes = db.getFilteredRoutes(area = args.area,
                                       stars= args.stars,
                                       grade= args.grade,
                                       style= args.style)
-    print(routes)
+
+    # Display only a few columns
+    print(routes[['name','grade','style','crag','shortnote','notes','date','stars']])
 
         
     ### DATABASE STUFF ###
