@@ -89,19 +89,25 @@ class ClimbingQuery:
           plt.show()
 
 
-     def getProjects(self, area=None):
+     def getProjects(self, crag = None, area = None):
           """Returns the project list in an area."""
-          projects = self.data[self.data.project=="X"]
+
+          projects = self.data[self.data.project == "X"]
+          
           if area:
-               projects = projects[projects.area==area]
+               projects = projects[projects.area == area]
+          if crag:
+               projects = projects[projects.crag == crag]
+
           return projects.sort_values(by=["ole_grade"])
 
      
-     def getFilteredRoutes(self, area=None, grade=None, style=None,
+     def getFilteredRoutes(self, crag=None, area=None, grade=None, style=None,
                            stars=None, operation="=="):
           """
           Return a route list under the applied filters.
 
+          :param crag: Crag name, e.g. 'Schlaraffenland'
           :param area: Area name, e.g. 'Frankenjura'
           :param grade: Grade, e.g. '8a' or '9+/10-'
           :param style: Onsight 'o.s.' or Flash 'F'
@@ -109,7 +115,8 @@ class ClimbingQuery:
           :param operation: logic operation applied to grade [default: ==], currently supported: ==,>=
           :returns: pandas data frame
           """
-          kwargs = {'area': area,
+          kwargs = {'crag': crag,
+                    'area': area,
                     'ole_grade': Grade(grade).conv_grade(),
                     'style': style,
                     'stars': stars
@@ -128,7 +135,7 @@ class ClimbingQuery:
 
                elif v and k=="ole_grade":
                     # HACK: try to display, e.g., also 9/9+ routes if grade=9
-                    routes = routes[(routes[k]==v) | (routes[k]==v+0.5)]
+                    routes = routes[(routes[k] == v) | (routes[k] == v+0.5)]
                     
                elif v:
                     routes = routes[routes[k] == v]
