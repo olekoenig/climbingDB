@@ -13,7 +13,7 @@ from argparse import RawTextHelpFormatter
 # from sqlalchemy import MetaData
 # from ascent import Ascent, Base
 
-from climbingQuery import ClimbingQuery # Get query functions
+from climbingQuery import ClimbingQuery
 
 
 def arguments():

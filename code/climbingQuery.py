@@ -88,9 +88,14 @@ class ClimbingQuery:
           ax.set_xticklabels(grades)
           plt.show()
 
+          
+     def getMultipitches(self):
+          mp = self.data[self.data['pitches'].notna()]
+          return mp.sort_values(by = ["ole_grade"])
 
+     
      def getProjects(self, crag = None, area = None):
-          """Returns the project list in an area."""
+          """Returns the project list in a crag or area."""
 
           projects = self.data[self.data.project == "X"]
           
