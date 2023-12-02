@@ -6,6 +6,7 @@ import re
 # To Do: Need to introduce Saxonian scale!
 
 UIAA = {
+    '2': 7,
     '3': 8,
     '3+': 9,
     '4-': 10,
@@ -143,6 +144,32 @@ YDS = {
     '5.14d': 35
 }
 
+Elbsandstein = {
+    'II': 7, 
+    'III': 8,
+    'VI': 10,
+    'V': 11,
+    'VI': 13,
+    'VIIa': 15,
+    'VIIb': 17,
+    'VIIc': 18,
+    'VIIIa': 19,
+    'VIIIb': 20,
+    'VIIIc': 21,
+    'IXa': 23,
+    'IXb': 24,
+    'IXc': 25,
+    'Xa': 27,
+    'Xb': 28,
+    'Xc': 29,
+    'XIa': 30,
+    'XIb': 31,
+    'XIc': 32,
+    'XIIa': 33,
+    'XIIa/XIIb': 34,
+    'XIIb': 35
+}
+
 
 class Grade:
     def __init__(self, value):
@@ -152,27 +179,32 @@ class Grade:
         return str(self.value)
         
     def get_scale(self):
-        status = "undetermined"
-        french_pattern = re.compile('[1-9][a-z]+')
+        scale = "undetermined"
 
-        #print(self.value, type(self.value))
-        
-        if "5." in self.value:
-            status = "YDS"
+        yds_pattern = re.compile("5\.[1-9]+[a-d]?")
+        french_pattern = re.compile("[1-9][a-z]+")
+        uiaa_pattern = re.compile("[1-9]+[+-]?")
+        elbsandstein_pattern = re.compile("[IVX]+[abc]?")
+
+        if yds_pattern.match(self.value):  #"5." in self.value:
+            scale = "YDS"
+        elif elbsandstein_pattern.match(self.value):
+            scale = "Elbsandstein"
         elif french_pattern.match(self.value):
-            status = "French"
-        elif status == "undetermined":
-            status = "UIAA"
-        else:
-            print("Could not identify the difficulty scale.")
-        return status
+            scale = "French"
+        elif uiaa_pattern.match(self.value):
+            scale = "UIAA"
+
+        return scale
 
     
     def conv_grade(self):
-        region = self.get_scale()
+        scale = self.get_scale()
+
         conversions = {
             'UIAA': UIAA,
             'French': French,
+            'Elbsandstein': Elbsandstein,
             'YDS': YDS
         }
 
@@ -180,16 +212,40 @@ class Grade:
         if ("R" in self.value or "C" in self.value or "A" in self.value):
             self.value = self.value.split(" ")[0]
 
-        # Test if the grade is in Ole's grade conversion table
-        if self.value not in conversions[region]:
+        # Handle double Elbsandstein/French grade: Treat Xa/7c+ as Xa
+        # (assuming that Elbsandstein has no slash grades!)
+        if (scale == "Elbsandstein" and "/" in self.value):
+            self.value = self.value.split("/")[0]
+            
+        if scale == "undetermined" or self.value not in conversions[scale]:
             # print("The conversion factor", self.value, "is not in the dictonary, setting grade to 0")
             return 0
 
-        return conversions[region][self.value]
+        return conversions[scale][self.value]
 
 
 if __name__ == "__main__":
-    test = Grade("5.13a")
+    test1 = Grade("5.13a")
     print("Input: 5.13a")
-    print("The infered grading scale is {}".format(test.get_scale()))
-    print("{} is translated to {} in Ole's internal scale".format(test,test.conv_grade()))
+    print("The infered grading scale is {}".format(test1.get_scale()))
+    print("{} is translated to {} in Ole's internal scale".format(test1, test1.conv_grade()))
+
+    test2 = Grade("9+/10-")
+    print("Input: 9+/10-")
+    print("The infered grading scale is {}".format(test2.get_scale()))
+    print("{} is translated to {} in Ole's internal scale".format(test2, test2.conv_grade()))
+
+    test3 = Grade("VIIIa")
+    print("Input: VIIIa")
+    print("The infered grading scale is {}".format(test3.get_scale()))
+    print("{} is translated to {} in Ole's internal scale".format(test3, test3.conv_grade()))
+
+    test4 = Grade("8a")
+    print("Input: 8a")
+    print("The infered grading scale is {}".format(test4.get_scale()))
+    print("{} is translated to {} in Ole's internal scale".format(test4, test4.conv_grade()))
+
+    test5 = Grade("V")
+    print("Input: V")
+    print("The infered grading scale is {}".format(test5.get_scale()))
+    print("{} is translated to {} in Ole's internal scale".format(test5, test5.conv_grade()))
