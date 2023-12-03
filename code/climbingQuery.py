@@ -25,28 +25,32 @@ class ClimbingQuery:
           :returns: data (Pandas data frame)
           """
 
-          # Import CSV file (should be changed to SQL query) ###########################################################
-          # Read in sport climbing routes
-          df = pandas.read_csv("../data/routes.csv",
-                                 sep=',', # csv file separated by comma
-                                 header=0, # no header column
-                                 parse_dates=["date"], # unify the dates
-                                 )
+          # Todo: change to SQL query
+          df_sport = pandas.read_csv("../data/routes.csv",
+                               sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
 
-          # Read in multipitch routes
-          df_multipitches = pandas.read_csv("../data/multipitches.csv",sep=',',header=0,parse_dates=["date"])
+          df_multipitches = pandas.read_csv("../data/multipitches.csv",
+                                            sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
+          
+          df_multipitches["multipitch"] = [True] * len(df_multipitches.name)
 
-          # Merge the two dataframe
-          df=df.append(df_multipitches, sort=True)
+          pitches_ole_grades = []
+          for index, row in df_multipitches.iterrows():
+               if row.pitches != "":
+                    pitches = row.pitches.split(",")
+                    pitches_ole_grades.append(list(Grade(pitch.strip("()")).conv_grade() for pitch in pitches))
+               else:
+                    # If no information on pitches is available, insert total grade
+                    pitches_ole_grades.append([Grade(row.grade).conv_grade()])
+          
+          df_multipitches["pitches_ole_grade"] = pitches_ole_grades
 
-          # Append a column ole_grade to pandas data frame
-          df["ole_grade"]=df["grade"].apply(lambda x: Grade(x).conv_grade())
+          df = pandas.concat([df_sport, df_multipitches], sort = True)
 
-          # Set the NaN values to "" or 0
-          df['stars']=df['stars'].fillna(0)
-          df['style']=df['style'].astype(object).fillna("")
-          df['shortnote'] = df['shortnote'].astype(object).fillna("")
-          df['notes'] = df['notes'].astype(object).fillna("")
+          df["ole_grade"] = df["grade"].apply(lambda x: Grade(x).conv_grade())
+
+          # Convert stars column to float and set empty cells to zero
+          df['stars'] = df['stars'].where(df['stars'] != "", other = 0).astype(float)
 
           return df
 
@@ -90,7 +94,7 @@ class ClimbingQuery:
 
           
      def getMultipitches(self):
-          mp = self.data[self.data['pitches'].notna()]
+          mp = self.data[(self.data['multipitch'] == True) & (self.data['project'] != "X")]
           return mp.sort_values(by = ["ole_grade"])
 
      
@@ -182,7 +186,7 @@ if __name__=="__main__":
      from climbingQuery import ClimbingQuery
                 
      print("Testing class climbingQuery")
-     db=ClimbingQuery()
+     db = ClimbingQuery()
      # print(db)
 
      # print("\nPrint the crag info of Wüstenstein")
@@ -191,10 +195,10 @@ if __name__=="__main__":
      # print("\nPrint the route info of Odins Tafel")
      # print(db.getRouteInfo("Odins Tafel"))
 
-     # Print route numbers
      # db.printRouteNumbers()
 
-     # Print project list
      # print(db.getProjects(area="Frankenjura"))
 
-     print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="8a+",operation=">="))
+     # print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="8a+",operation=">="))
+
+     
