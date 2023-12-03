@@ -94,7 +94,7 @@ class ClimbingQuery:
 
           
      def getMultipitches(self):
-          mp = self.data[(self.data['multipitch'] == True) & (self.data['project'] != "X")]
+          mp = self.data[self.data['multipitch'] == True]
           return mp.sort_values(by = ["ole_grade"])
 
      
