@@ -3,9 +3,12 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from climbingQuery import ClimbingQuery
 from grade import Grade
+from grade import Ole_scale
+
 
 plt.rcParams['text.usetex'] = True
 
@@ -13,8 +16,6 @@ plt.rcParams['text.usetex'] = True
 def main():
     db = ClimbingQuery()
     mp = db.getMultipitches().sort_values(by = ["ole_grade"], ascending = False)
-
-    plt.figure(figsize=(.37*len(mp.name), 7))
 
     # Fix me: Why doesn't one min work? Some weird slicing?
     min_grade = min(mp.pitches_ole_grade.min())
@@ -24,6 +25,8 @@ def main():
     norm = matplotlib.colors.Normalize(vmin=min_grade, vmax=max_grade, clip=True)
     mapper = cm.ScalarMappable(norm=norm, cmap=cm.get_cmap('RdYlGn_r'))
 
+    fig, ax = plt.subplots(figsize=(.37*len(mp.name), 7))
+    
     for index, row in mp.iterrows():
         avg_pitch_length = row.length / len(row.pitches_ole_grade)
 
@@ -43,13 +46,31 @@ def main():
                     # kwargs['alpha'] = 0.2
                     kwargs['hatch'] = "oo"
 
-            title = '{} ({})\n {}'.format(row['name'], row['grade'], row['area'])
+            kwargs['alpha'] = 0.2 if row.project == "X" else 1
 
-            plt.bar(title, avg_pitch_length, **kwargs)
+            grade = row['grade'] if row['style'] == "" else "{} {}".format(row['grade'], row['style'])
+            title = '{} ({})\n {}'.format(row['name'], grade, row['area'])
+
+            ax.bar(title, avg_pitch_length, **kwargs)
             # plt.text(title, c*avg_pitch_length+avg_pitch_length//2, pitch, ha = 'center')
-            
+    
+    props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+    ax.text(.99, 0.95, "Solid: Lead\n Hashed: Follow\n Transparent: Project", transform=ax.transAxes, fontsize=10,
+            va='top', ha="right", bbox=props)
+
+    plt.title("Multipitch Routebook Ole")
     plt.xticks(rotation = 90)
     plt.ylabel("Length [m]")
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='1%', pad=0.05)
+    tics = [11, 15, 18, 20, 22, 24, 26, 28, 29.5]
+    ticlabels = [Ole_scale[tic] for tic in tics]
+    cbar = fig.colorbar(mapper, cax = cax, orientation='vertical')
+    cbar.set_ticks(tics)
+    cbar.set_ticklabels(ticlabels)
+
+    
     plt.tight_layout()
     plt.savefig("multipitches.pdf")
         
