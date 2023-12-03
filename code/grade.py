@@ -6,6 +6,7 @@ import re
 # To Do: Need to introduce Saxonian scale!
 
 UIAA = {
+    '1': 6,
     '2': 7,
     '3': 8,
     '3+': 9,
@@ -62,6 +63,7 @@ French = {
     '5b': 15,
     '5b+': 16,
     '5c': 17,
+    '5c+': 17.5,
     '6a': 18,
     '6a+': 19,
     '6a+/6b': 19.5,
@@ -169,6 +171,8 @@ Elbsandstein = {
     'XIIa/XIIb': 34,
     'XIIb': 35
 }
+
+Ole_scale = {v: k for k, v in French.items()}
 
 
 class Grade:
