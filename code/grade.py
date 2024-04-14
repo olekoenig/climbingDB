@@ -115,6 +115,7 @@ YDS = {
     '5.10b': 19,
     '5.10b/c': 19.5,
     '5.10c': 20,
+    '5.10+': 20.25, # experimental, to be confirmed
     '5.10c/d': 20.25, # to be confirmed, skewed?
     '5.10d': 20.5,
     '5.11a': 21,
