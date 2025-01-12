@@ -3,8 +3,6 @@ import re
 # The scale is transformed to an arbitrary scale which is based on the austrialian scale
 # but since it is not continuous I introduced decimals.
 
-# To Do: Need to introduce Saxonian scale!
-
 UIAA = {
     '1': 6,
     '2': 7,
@@ -59,7 +57,9 @@ French = {
     '4b': 11,
     '4b+': 12,
     '4c': 13,
+    '4c+': 13.5,
     '5a': 14,
+    '5a+': 14.5,
     '5b': 15,
     '5b+': 16,
     '5c': 17,
@@ -173,6 +173,59 @@ Elbsandstein = {
     'XIIb': 35
 }
 
+v_max = 17
+v_keys = ["V" + str(x) for x in range(0, v_max)]
+v_vals = range(0, v_max)
+Vermin = dict(zip(v_keys, v_vals))
+v_slashes_keys = [f"V{x}/{x+1}" for x in range(0, v_max)]
+v_slashes_vals = [x + 0.5 for x in range(0, v_max)]
+V_slashes = dict(zip(v_slashes_keys, v_slashes_vals))
+Vermin.update(V_slashes)
+Vermin.update({'VB': 0, 'L': 0})
+
+Font = {
+    '4': 0.,
+    '5A': 1,
+    '5B': 1.5,
+    '5B+': 1.75,
+    '5C': 2,
+    '6A': 2.5,
+    '6A/+': 2.75,
+    '6A+': 3,
+    '6B': 4,
+    '6B/+': 4.25,
+    '6B+': 4.5,
+    '6C': 5,
+    '6C/+': 5.25,
+    '6C+': 5.5,
+    '6C+/7A': 5.75,
+    '7A': 6.25,
+    '7A/+': 6.5,
+    '7A+': 7,
+    '7A+/B': 7.5,
+    '7B': 8,
+    '7B/+': 8.25,
+    '7B+': 8.5,
+    '7B+/C': 8.75,
+    '7C': 9,
+    '7C/+': 9.5,
+    '7C+': 10,
+    '7C+/8A': 10.5,
+    '8A': 11,
+    '8A/+': 11.5,
+    '8A+': 12,
+    '8A+/B': 12.5,
+    '8B': 13,
+    '8B/+': 13.5,
+    '8B+': 14,
+    '8B+/C': 14.5,
+    '8C': 15,
+    '8C/+': 15.5,
+    '8C+': 16,
+    '8C+/9A': 16.5,
+    '9A': 17
+}
+
 Ole_scale = {v: k for k, v in French.items()}
 
 
@@ -190,9 +243,17 @@ class Grade:
         french_pattern = re.compile("[1-9][a-z]+")
         uiaa_pattern = re.compile("[1-9]+[+-]?")
         elbsandstein_pattern = re.compile("[IVX]+[abc]?")
+        vscale_pattern = re.compile("V[0-9]+")
+        font_pattern = re.compile("[1-9][A-Z]+\+?")
 
-        if yds_pattern.match(self.value):  #"5." in self.value:
+        # Attention! Sequence currently matters (Elbsandstein V and V5
+        # boulder have same regex right now)
+        if yds_pattern.match(self.value):
             scale = "YDS"
+        elif vscale_pattern.match(self.value) or self.value == "VB" or self.value == "L":
+            scale = "Vermin"
+        elif font_pattern.match(self.value):
+            scale = "Font"
         elif elbsandstein_pattern.match(self.value):
             scale = "Elbsandstein"
         elif french_pattern.match(self.value):
@@ -201,7 +262,6 @@ class Grade:
             scale = "UIAA"
 
         return scale
-
     
     def conv_grade(self):
         scale = self.get_scale()
@@ -210,7 +270,9 @@ class Grade:
             'UIAA': UIAA,
             'French': French,
             'Elbsandstein': Elbsandstein,
-            'YDS': YDS
+            'YDS': YDS,
+            'Vermin': Vermin,
+            'Font': Font
         }
 
         # Handle the aid climbing scale: If the route is, e.g., 5.8 C2, treat it as 5.8 instead
@@ -222,6 +284,10 @@ class Grade:
         if (scale == "Elbsandstein" and "/" in self.value):
             self.value = self.value.split("/")[0]
             
+        # Handle traverse grades by subtracting 1 from ole_scale
+        if ("trav" in self.value):
+            return conversions[scale][self.value.split(" trav")[0]] - 1
+            
         if scale == "undetermined" or self.value not in conversions[scale]:
             # print("The conversion factor", self.value, "is not in the dictonary, setting grade to 0")
             return 0
@@ -229,28 +295,3 @@ class Grade:
         return conversions[scale][self.value]
 
 
-if __name__ == "__main__":
-    test1 = Grade("5.13a")
-    print("Input: 5.13a")
-    print("The infered grading scale is {}".format(test1.get_scale()))
-    print("{} is translated to {} in Ole's internal scale".format(test1, test1.conv_grade()))
-
-    test2 = Grade("9+/10-")
-    print("Input: 9+/10-")
-    print("The infered grading scale is {}".format(test2.get_scale()))
-    print("{} is translated to {} in Ole's internal scale".format(test2, test2.conv_grade()))
-
-    test3 = Grade("VIIIa")
-    print("Input: VIIIa")
-    print("The infered grading scale is {}".format(test3.get_scale()))
-    print("{} is translated to {} in Ole's internal scale".format(test3, test3.conv_grade()))
-
-    test4 = Grade("8a")
-    print("Input: 8a")
-    print("The infered grading scale is {}".format(test4.get_scale()))
-    print("{} is translated to {} in Ole's internal scale".format(test4, test4.conv_grade()))
-
-    test5 = Grade("V")
-    print("Input: V")
-    print("The infered grading scale is {}".format(test5.get_scale()))
-    print("{} is translated to {} in Ole's internal scale".format(test5, test5.conv_grade()))

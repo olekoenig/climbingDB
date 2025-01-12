@@ -12,10 +12,9 @@ class ClimbingQuery:
      def __init__(self):
           self.data = self._import_routes()
 
-          
      def __str__(self):
-          return self.getFilteredRoutes().sort_values(by=["ole_grade"]).__str__()
-
+          df = self.getFilteredRoutes()[['name','grade','style','crag','shortnote','notes','date','stars']]
+          return df.__str__()
 
      def _import_routes(self):
           """Import the CSV file.
@@ -25,27 +24,19 @@ class ClimbingQuery:
           :returns: data (Pandas data frame)
           """
 
-          # Todo: change to SQL query
           df_sport = pandas.read_csv("../data/routes.csv",
-                               sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
-
+                                     sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
+          df_boulders = pandas.read_csv("../data/boulders.csv",
+                                       sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
           df_multipitches = pandas.read_csv("../data/multipitches.csv",
                                             sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
-          
-          df_multipitches["multipitch"] = [True] * len(df_multipitches.name)
 
-          pitches_ole_grades = []
-          for index, row in df_multipitches.iterrows():
-               if row.pitches != "":
-                    pitches = row.pitches.split(",")
-                    pitches_ole_grades.append(list(Grade(pitch.strip("()")).conv_grade() for pitch in pitches))
-               else:
-                    # If no information on pitches is available, insert total grade
-                    pitches_ole_grades.append([Grade(row.grade).conv_grade()])
-          
-          df_multipitches["pitches_ole_grade"] = pitches_ole_grades
+          df_sport["discipline"] = "Sportclimb"
+          df_boulders["discipline"] = "Boulder"
+          df_multipitches["discipline"] = "Multipitch"
+          self.convertMultipitchPitches(df_multipitches)
 
-          df = pandas.concat([df_sport, df_multipitches], sort = True)
+          df = pandas.concat([df_sport, df_multipitches, df_boulders], sort = True)
 
           df["ole_grade"] = df["grade"].apply(lambda x: Grade(x).conv_grade())
 
@@ -54,6 +45,18 @@ class ClimbingQuery:
 
           return df
 
+     def convertMultipitchPitches(self, df):
+          """Convert the column "pitches" into numerical ole_grade."""
+          pitches_ole_grades = []
+          for index, row in df.iterrows():
+               if row.pitches != "":
+                    pitches = row.pitches.split(",")
+                    pitches_ole_grades.append(list(Grade(pitch.strip("()")).conv_grade() for pitch in pitches))
+               else:
+                    # If no information on pitches is available, insert total grade
+                    pitches_ole_grades.append([Grade(row.grade).conv_grade()])
+          
+          df["pitches_ole_grade"] = pitches_ole_grades
 
      def printRouteNumbers(self):
           """Prints the number of routes in each grade and plots a histogram."""
@@ -91,12 +94,14 @@ class ClimbingQuery:
           ax.set_xticks(pos_x)
           ax.set_xticklabels(grades)
           plt.show()
-
           
      def getMultipitches(self):
-          mp = self.data[self.data['multipitch'] == True]
-          return mp.sort_values(by = ["ole_grade"])
+          df = self.data[self.data['discipline'] == "Multipitch"]
+          return df.sort_values(by = ["ole_grade"])
 
+     def getBoulders(self):
+          df = self.data[self.data['discipline'] == "Boulder"]
+          return df.sort_values(by = ["ole_grade"])
      
      def getProjects(self, crag = None, area = None):
           """Returns the project list in a crag or area."""
@@ -109,7 +114,6 @@ class ClimbingQuery:
                projects = projects[projects.crag == crag]
 
           return projects.sort_values(by=["ole_grade"])
-
      
      def getFilteredRoutes(self, crag=None, area=None, grade=None, style=None,
                            stars=None, operation="=="):
@@ -134,7 +138,6 @@ class ClimbingQuery:
           # Copy the data frame, otherwise it is overridden
           routes = self.data[self.data.project!="X"].copy()
           
-          # Go through the arguments and filter the list accordingly
           for k,v in kwargs.items():
                
                if v and k=="stars" or (k=="ole_grade" and operation==">="):
@@ -155,7 +158,7 @@ class ClimbingQuery:
      def getCragInfo(self, cragname):
           """Prints the info about a crag.
 
-          .. note:: To be changed to SQL query.
+          .. note:: To be changed to SQL query/store this info somewhere else
           """
           info=self.data[self.data.crag==cragname]
           if info.cragnote.any()==False:
@@ -170,8 +173,7 @@ class ClimbingQuery:
           if info.notes.any()==False:
                print("No information about the route "+routename+" available")
           else:
-               print(info.notes.all())
-          
+               print(info.notes.all())          
 
      def sort_by_date(self):
           # Sort the list by the date of the ascent
@@ -187,8 +189,10 @@ if __name__=="__main__":
                 
      print("Testing class climbingQuery")
      db = ClimbingQuery()
-     # print(db)
 
+     boulders = db.getBoulders()
+     print(boulders[['name','grade','style','crag','shortnote','notes','date','stars']])
+     
      # print("\nPrint the crag info of Wüstenstein")
      # print(db.getCragInfo("Wüstenstein"))
                 

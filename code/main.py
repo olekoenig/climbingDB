@@ -35,7 +35,6 @@ def arguments():
     parser.add_argument('--getProjects', action='store_true',
                         help=("Returns the project list of a crag or area\n"
                               "can be used in connection with --crag and --area"))
-    parser.add_argument('--getCragInfo', type=str, help="Prints the info about a crag")
     parser.add_argument('--getRouteInfo', type=str, help="Get the logged information about a route")
     args = parser.parse_args()
     return args
@@ -68,19 +67,14 @@ def arguments():
 
 
 def main():
-    # Get command line arguments
     args = arguments()
 
-    # Import the CSV file
-    db=ClimbingQuery()
+    db = ClimbingQuery()
 
-    # Test for the different arguments
     if args.getProjects:
         routes = db.getProjects(crag = args.crag, area=args.area)
     elif args.printRouteNumbers:
         return db.printRouteNumbers()
-    elif args.getCragInfo:
-        return db.getCragInfo(args.getCragInfo)
     elif args.getRouteInfo:
         return db.getRouteInfo(args.getRouteInfo)
     else:
@@ -92,7 +86,7 @@ def main():
 
     # Display only a few columns
     print(routes[['name','grade','style','crag','shortnote','notes','date','stars']])
-
+    
         
     ### DATABASE STUFF ###
     # engine, metadata = connect2engine()
