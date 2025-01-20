@@ -1,4 +1,5 @@
 from grade import Grade, French
+from config import *
 
 import pandas
 import matplotlib.pyplot as plt
@@ -24,17 +25,17 @@ class ClimbingQuery:
           :returns: data (Pandas data frame)
           """
 
-          df_sport = pandas.read_csv("../data/routes.csv",
-                                     sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
-          df_boulders = pandas.read_csv("../data/boulders.csv",
-                                       sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
-          df_multipitches = pandas.read_csv("../data/multipitches.csv",
-                                            sep = ',', header = 0, parse_dates = ["date"], keep_default_na = False)
+          df_sport = pandas.read_csv(ROUTES_CSV_FILE, sep = ',', header = 0,
+                                     parse_dates = ["date"], keep_default_na = False)
+          df_boulders = pandas.read_csv(BOULDERS_CSV_FILE, sep = ',', header = 0,
+                                        parse_dates = ["date"], keep_default_na = False)
+          df_multipitches = pandas.read_csv(MULTIPITCHES_CSV_FILE, sep = ',', header = 0,
+                                            parse_dates = ["date"], keep_default_na = False)
 
           df_sport["discipline"] = "Sportclimb"
           df_boulders["discipline"] = "Boulder"
           df_multipitches["discipline"] = "Multipitch"
-          self.convertMultipitchPitches(df_multipitches)
+          self.convert_multipitch_pitches(df_multipitches)
 
           df = pandas.concat([df_sport, df_multipitches, df_boulders], sort = True)
 
@@ -45,7 +46,7 @@ class ClimbingQuery:
 
           return df
 
-     def convertMultipitchPitches(self, df):
+     def convert_multipitch_pitches(self, df):
           """Convert the column "pitches" into numerical ole_grade."""
           pitches_ole_grades = []
           for index, row in df.iterrows():
@@ -58,7 +59,7 @@ class ClimbingQuery:
           
           df["pitches_ole_grade"] = pitches_ole_grades
 
-     def printRouteNumbers(self):
+     def print_route_numbers(self):
           """Prints the number of routes in each grade and plots a histogram."""
           # Copy the data frame, otherwise it is overridden
           routes = self.data[self.data.project!="X"].copy()
@@ -95,15 +96,15 @@ class ClimbingQuery:
           ax.set_xticklabels(grades)
           plt.show()
           
-     def getMultipitches(self):
+     def get_multipitches(self):
           df = self.data[self.data['discipline'] == "Multipitch"]
           return df.sort_values(by = ["ole_grade"])
 
-     def getBoulders(self):
+     def get_boulders(self):
           df = self.data[self.data['discipline'] == "Boulder"]
           return df.sort_values(by = ["ole_grade"])
      
-     def getProjects(self, crag = None, area = None):
+     def get_projects(self, crag = None, area = None):
           """Returns the project list in a crag or area."""
 
           projects = self.data[self.data.project == "X"]
@@ -115,7 +116,7 @@ class ClimbingQuery:
 
           return projects.sort_values(by=["ole_grade"])
      
-     def getFilteredRoutes(self, crag=None, area=None, grade=None, style=None,
+     def get_filtered_routes(self, crag=None, area=None, grade=None, style=None,
                            stars=None, operation="=="):
           """
           Return a route list under the applied filters.
@@ -152,10 +153,9 @@ class ClimbingQuery:
                elif v:
                     routes = routes[routes[k] == v]
                     
-          return routes.sort_values(by=["ole_grade"])
+          return routes.sort_values(by=["ole_grade"])     
      
-     
-     def getCragInfo(self, cragname):
+     def get_crag_info(self, cragname):
           """Prints the info about a crag.
 
           .. note:: To be changed to SQL query/store this info somewhere else
@@ -166,8 +166,7 @@ class ClimbingQuery:
           else:
                print(info.cragnote.all())
           
-          
-     def getRouteInfo(self,routename):
+     def get_route_info(self,routename):
           """Get the logged information about a route."""
           info=self.data[self.data.name==routename]
           if info.notes.any()==False:
@@ -185,24 +184,22 @@ class ClimbingQuery:
 
 
 if __name__=="__main__":
-     from climbingQuery import ClimbingQuery
-                
      print("Testing class climbingQuery")
      db = ClimbingQuery()
 
-     boulders = db.getBoulders()
+     boulders = db.get_boulders()
      print(boulders[['name','grade','style','crag','shortnote','notes','date','stars']])
      
      # print("\nPrint the crag info of Wüstenstein")
-     # print(db.getCragInfo("Wüstenstein"))
+     # print(db.get_crag_info("Wüstenstein"))
                 
      # print("\nPrint the route info of Odins Tafel")
-     # print(db.getRouteInfo("Odins Tafel"))
+     # print(db.get_route_info("Odins Tafel"))
 
-     # db.printRouteNumbers()
+     # db.print_route_numbers()
 
-     # print(db.getProjects(area="Frankenjura"))
+     # print(db.get_projects(area="Frankenjura"))
 
-     # print(db.getFilteredRoutes(area="Frankenjura",stars=2,grade="8a+",operation=">="))
+     # print(db.get_filtered_routes(area="Frankenjura",stars=2,grade="8a+",operation=">="))
 
      

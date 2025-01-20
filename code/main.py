@@ -30,12 +30,12 @@ def arguments():
                         help="Print routes with stars>=0,1,2 or 3")
     parser.add_argument('--style', type=str,
                         help="e.g., o.s., F., 2. Go, 1 day")
-    parser.add_argument('--printRouteNumbers', action='store_true',
+    parser.add_argument('--print_route_numbers', action='store_true',
                         help=("Prints the number of routes in each grade and plots a histogram"))
-    parser.add_argument('--getProjects', action='store_true',
+    parser.add_argument('--get_projects', action='store_true',
                         help=("Returns the project list of a crag or area\n"
                               "can be used in connection with --crag and --area"))
-    parser.add_argument('--getRouteInfo', type=str, help="Get the logged information about a route")
+    parser.add_argument('--get_route_info', type=str, help="Get the logged information about a route")
     args = parser.parse_args()
     return args
 
@@ -71,18 +71,18 @@ def main():
 
     db = ClimbingQuery()
 
-    if args.getProjects:
-        routes = db.getProjects(crag = args.crag, area=args.area)
-    elif args.printRouteNumbers:
-        return db.printRouteNumbers()
-    elif args.getRouteInfo:
-        return db.getRouteInfo(args.getRouteInfo)
+    if args.get_projects:
+        routes = db.get_projects(crag = args.crag, area=args.area)
+    elif args.print_route_numbers:
+        return db.print_route_numbers()
+    elif args.get_route_info:
+        return db.get_route_info(args.get_route_info)
     else:
-        routes = db.getFilteredRoutes(crag = args.crag,
-                                      area = args.area,
-                                      stars= args.stars,
-                                      grade= args.grade,
-                                      style= args.style)
+        routes = db.get_filtered_routes(crag = args.crag,
+                                        area = args.area,
+                                        stars= args.stars,
+                                        grade= args.grade,
+                                        style= args.style)
 
     # Display only a few columns
     print(routes[['name','grade','style','crag','shortnote','notes','date','stars']])
