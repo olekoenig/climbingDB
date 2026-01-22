@@ -33,13 +33,20 @@ class ClimbingQuery:
                                             parse_dates = ["date"], keep_default_na = False)
 
           df_sport["discipline"] = "Sportclimb"
+
           df_boulders["discipline"] = "Boulder"
+
           df_multipitches["discipline"] = "Multipitch"
           self.convert_multipitch_pitches(df_multipitches)
 
           df = pandas.concat([df_sport, df_multipitches, df_boulders], sort = True)
 
           df["ole_grade"] = df["grade"].apply(lambda x: Grade(x).conv_grade())
+
+          # Fix boulders which have YDS/UIAA grades (usually very easy, setting to V0 equivalent)
+          boulder_mask = df["discipline"] == "Boulder"
+          wrong_scale_mask = df["grade"].apply(lambda g: Grade(g).get_scale() in ['YDS', 'UIAA'])
+          df.loc[boulder_mask & wrong_scale_mask, "ole_grade"] = 0
 
           # Convert stars column to float and set empty cells to zero
           df['stars'] = df['stars'].where(df['stars'] != "", other = 0).astype(float)
@@ -116,11 +123,13 @@ class ClimbingQuery:
 
           return projects.sort_values(by=["ole_grade"])
      
-     def get_filtered_routes(self, crag=None, area=None, grade=None, style=None,
-                           stars=None, operation="=="):
+     def get_filtered_routes(self, discipline="Sportclimb",
+                             crag=None, area=None, grade=None, style=None,
+                             stars=None, operation="=="):
           """
           Return a route list under the applied filters.
 
+          :param discipline: Sportclimb, Boulder, or Multipitch"
           :param crag: Crag name, e.g. 'Schlaraffenland'
           :param area: Area name, e.g. 'Frankenjura'
           :param grade: Grade, e.g. '8a' or '9+/10-'
@@ -129,27 +138,25 @@ class ClimbingQuery:
           :param operation: logic operation applied to grade [default: ==], currently supported: ==,>=
           :returns: pandas data frame
           """
-          kwargs = {'crag': crag,
+          kwargs = {'discipline': discipline,
+                    'crag': crag,
                     'area': area,
                     'ole_grade': Grade(grade).conv_grade(),
                     'style': style,
                     'stars': stars
           }
 
-          # Copy the data frame, otherwise it is overridden
-          routes = self.data[self.data.project!="X"].copy()
+          # De-select projects, copy the data frame, otherwise it is overridden
+          routes = self.data[self.data.project != "X"].copy()
           
           for k,v in kwargs.items():
-               
                if v and k=="stars" or (k=="ole_grade" and operation==">="):
-                    # applies if stars set: display routes with stars>=value
+                    # applies if stars set: display routes with stars >= value
                     # or applies if operation is larger-equal and grade set
                     routes = routes[routes[k] >= v]
-
                elif v and k=="ole_grade":
                     # HACK: try to display, e.g., also 9/9+ routes if grade=9
                     routes = routes[(routes[k] == v) | (routes[k] == v+0.5)]
-                    
                elif v:
                     routes = routes[routes[k] == v]
                     
@@ -200,6 +207,7 @@ if __name__=="__main__":
 
      # print(db.get_projects(area="Frankenjura"))
 
-     # print(db.get_filtered_routes(area="Frankenjura",stars=2,grade="8a+",operation=">="))
+     #print(db.get_filtered_routes(discipline="Boulder", area="Frankenjura"))
+     #print(db.get_filtered_routes(discipline="Sportclimb", area="Frankenjura",stars=2,grade="7a",operation=">="))
 
      
