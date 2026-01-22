@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 
+import shutil
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from climbingQuery import ClimbingQuery
-from grade import Grade
-from grade import Ole_scale
+from grade import Ole_to_French
+
+if shutil.which("latex"):
+    plt.rcParams['text.usetex'] = True
 
 
-plt.rcParams['text.usetex'] = True
-
-
-def main():
-    db = ClimbingQuery()
-    mp = db.getMultipitches().sort_values(by = ["ole_grade"], ascending = False)
+def create_multipitch_visualization(mp_dataframe):
+    mp = mp_dataframe.sort_values(by=["ole_grade"], ascending=False)
 
     # Fix me: Why doesn't one min work? Some weird slicing?
     min_grade = min(mp.pitches_ole_grade.min())
@@ -23,7 +22,7 @@ def main():
 
     # to define own cmap, see https://stackoverflow.com/questions/53754012/create-a-gradient-colormap-matplotlib
     norm = matplotlib.colors.Normalize(vmin=min_grade, vmax=max_grade, clip=True)
-    mapper = cm.ScalarMappable(norm=norm, cmap=cm.get_cmap('RdYlGn_r'))
+    mapper = cm.ScalarMappable(norm=norm, cmap=matplotlib.colormaps.get_cmap('RdYlGn_r'))
 
     fig, ax = plt.subplots(figsize=(.37*len(mp.name), 7))
     
@@ -65,16 +64,19 @@ def main():
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='1%', pad=0.05)
     tics = [11, 15, 18, 20, 22, 24, 26, 28, 29.5]
-    ticlabels = [Ole_scale[tic] for tic in tics]
+    ticlabels = [Ole_to_French[tic] for tic in tics]
     cbar = fig.colorbar(mapper, cax = cax, orientation='vertical')
     cbar.set_ticks(tics)
     cbar.set_ticklabels(ticlabels)
 
-    
     plt.tight_layout()
-    plt.savefig("multipitches.pdf")
+    return fig
         
-
+def main():
+    db = ClimbingQuery()
+    mp = db.get_multipitches()
+    fig = create_multipitch_visualization(mp)
+    plt.savefig("multipitches.pdf")
     
 if __name__ == "__main__":
     main()
