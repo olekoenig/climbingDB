@@ -69,6 +69,7 @@ French = {
     '6a+/6b': 19.5,
     '6b': 20,
     '6b+': 20.5,
+    '6b+/6c': 21,
     '6c': 22,
     '6c/6c+': 22.5,
     '6c+': 23,
@@ -226,8 +227,12 @@ Font = {
     '9A': 17
 }
 
-Ole_scale = {v: k for k, v in French.items()}
-
+Ole_to_UIAA = {v: k for k, v in UIAA.items()}
+Ole_to_French = {v: k for k, v in French.items()}
+Ole_to_YDS = {v: k for k, v in YDS.items()}
+Ole_to_Elbsandstein = {v: k for k, v in Elbsandstein.items()}
+Ole_to_Vermin = {v: k for k, v in Vermin.items()}
+Ole_to_Font = {v: k for k, v in Font.items()}
 
 class Grade:
     def __init__(self, value):
@@ -235,7 +240,7 @@ class Grade:
 
     def __repr__(self):
         return str(self.value)
-        
+
     def get_scale(self):
         scale = "undetermined"
 
@@ -262,7 +267,7 @@ class Grade:
             scale = "UIAA"
 
         return scale
-    
+
     def conv_grade(self):
         scale = self.get_scale()
 
@@ -285,6 +290,7 @@ class Grade:
             self.value = self.value.split("/")[0]
             
         # Handle traverse grades by subtracting 1 from ole_scale
+        # IS THIS ONLY FRANKENJURA CONVENTION!?
         if ("trav" in self.value):
             return conversions[scale][self.value.split(" trav")[0]] - 1
             
@@ -294,4 +300,33 @@ class Grade:
 
         return conversions[scale][self.value]
 
+    @staticmethod
+    def from_ole_grade(ole_value: float, target_system: str) -> str:
+        """
+        Convert from ole_grade (numeric) back to a grading system.
 
+        :param ole_value: The numeric ole_grade value
+        :param target_system: Target system ('French', 'UIAA', 'YDS', 'Elbsandstein', 'Vermin', 'Font')
+        :returns: Grade string in target system
+        """
+        conversions = {
+            'French': Ole_to_French,
+            'UIAA': Ole_to_UIAA,
+            'YDS': Ole_to_YDS,
+            'Elbsandstein': Ole_to_Elbsandstein,
+            'Vermin': Ole_to_Vermin,
+            'Font': Ole_to_Font
+        }
+
+        # Direct lookup
+        if ole_value in conversions[target_system]:
+            return conversions[target_system][ole_value]
+
+        # If exact match not found, find closest lower grade
+        # This handles cases where ole_grade doesn't exactly match
+        reverse_dict = conversions[target_system]
+        available_grades = sorted(reverse_dict.keys())
+
+        for i in range(len(available_grades)-1, -1, -1):
+            if available_grades[i] <= ole_value:
+                return reverse_dict[available_grades[i]]
