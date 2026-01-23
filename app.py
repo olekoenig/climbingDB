@@ -8,8 +8,10 @@ import matplotlib.pyplot as plt
 from climbingdb import ClimbingQuery, Grade
 from climbingdb.display_multipitches import create_multipitch_visualization
 
-GRADE_OPTIONS = ["All", "4a", "5a", "6a", "6b", "6c", "7a", "7a+", "7b", "7b+",
-                 "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a"]
+GRADE_OPTIONS_ROUTES = ["All", "4a", "5a", "6a", "6b", "6c", "7a", "7a+", "7b", "7b+",
+                        "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a"]
+GRADE_OPTIONS_BOULDERS = ['All', 'V0', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8',
+                          'V9', 'V10', 'V11', 'V12', 'V13', 'V14', 'V15']
 
 SPORT_GRADE_SYSTEMS = ["Original", "French", "UIAA", "YDS", "Elbsandstein"]
 BOULDER_GRADE_SYSTEMS = ["Original", "Vermin", "Font"]
@@ -80,9 +82,11 @@ def render_sidebar_filters(db):
         help="≥: Show routes at or above grade\n==: Show routes at exact grade (includes slash grades)"
     )
 
+    grade_options = GRADE_OPTIONS_BOULDERS if st.session_state.view == "Boulder" else GRADE_OPTIONS_ROUTES
+
     selected_grade = st.sidebar.selectbox(
         "Grade",
-        GRADE_OPTIONS,
+        grade_options,
         help="Select grade to filter by"
     )
 
@@ -127,7 +131,11 @@ def fetch_routes(db, filters):
 
 
 def format_grade_display(row, discipline):
-    result = row['grade']
+    result = row['grade'] if row['grade'] else ""
+
+    # If grade is None/empty, return empty string
+    if not result:
+        return ""
 
     # Add ernsthaftigkeit for multipitches
     if discipline == 'Multipitch' and row.get('ernsthaftigkeit'):
@@ -140,6 +148,14 @@ def format_grade_display(row, discipline):
 
 
 def process_routes_display(routes, selected_grade_system):
+    # Subtract/add small number such that soft routes are displayed below hard routes
+    routes['ole_grade'] = routes.apply(
+        lambda row: row['ole_grade'] - 1e-6 if 'soft' in str(row['shortnote']).lower()
+        else row['ole_grade'] + 1e-6 if 'hard' in str(row['shortnote']).lower()
+        else row['ole_grade'],
+        axis=1
+    )
+
     routes = routes.sort_values(by="ole_grade", ascending=False)
 
     if st.session_state.view == "Multipitch":
