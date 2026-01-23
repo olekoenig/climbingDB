@@ -25,9 +25,9 @@ class ClimbingQuery:
           :returns: data (Pandas data frame)
           """
 
-          df_sport = pd.read_csv(ROUTES_CSV_FILE, sep = ';', header = 0, encoding = 'latin',
+          df_sport = pd.read_csv(ROUTES_CSV_FILE, sep = ';', header = 0, encoding = 'utf-8',
                                  parse_dates = ["date"], keep_default_na = False)
-          df_boulders = pd.read_csv(BOULDERS_CSV_FILE, sep = ';', header = 0, encoding = 'latin',
+          df_boulders = pd.read_csv(BOULDERS_CSV_FILE, sep = ';', header = 0, encoding = 'utf-8',
                                     parse_dates = ["date"], keep_default_na = False)
           df_multipitches = pd.read_csv(MULTIPITCHES_CSV_FILE, sep = ';', header = 0, encoding = 'utf-8',
                                         parse_dates = ["date"], keep_default_na = False)
