@@ -1,7 +1,7 @@
-from grade import Grade, French
-from config import *
+from .grade import Grade, French
+from .config import *
 
-import pandas
+import pandas as pd
 import matplotlib.pyplot as plt
 
 
@@ -25,11 +25,11 @@ class ClimbingQuery:
           :returns: data (Pandas data frame)
           """
 
-          df_sport = pandas.read_csv(ROUTES_CSV_FILE, sep = ',', header = 0,
+          df_sport = pd.read_csv(ROUTES_CSV_FILE, sep = ',', header = 0,
                                      parse_dates = ["date"], keep_default_na = False)
-          df_boulders = pandas.read_csv(BOULDERS_CSV_FILE, sep = ',', header = 0,
+          df_boulders = pd.read_csv(BOULDERS_CSV_FILE, sep = ',', header = 0,
                                         parse_dates = ["date"], keep_default_na = False)
-          df_multipitches = pandas.read_csv(MULTIPITCHES_CSV_FILE, sep = ',', header = 0,
+          df_multipitches = pd.read_csv(MULTIPITCHES_CSV_FILE, sep = ',', header = 0,
                                             parse_dates = ["date"], keep_default_na = False)
 
           df_sport["discipline"] = "Sportclimb"
@@ -39,7 +39,7 @@ class ClimbingQuery:
           df_multipitches["discipline"] = "Multipitch"
           self.convert_multipitch_pitches(df_multipitches)
 
-          df = pandas.concat([df_sport, df_multipitches, df_boulders], sort = True)
+          df = pd.concat([df_sport, df_multipitches, df_boulders], sort = True)
 
           df["ole_grade"] = df["grade"].apply(lambda x: Grade(x).conv_grade())
 

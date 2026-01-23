@@ -10,7 +10,7 @@ import os
 wdir = os.getcwd().split("tests")[0]
 sys.path.append(wdir)
 
-from grade import Grade
+from climbingdb import Grade
 
 class TestGrades(unittest.TestCase):
     def test_sportclimbs(self):

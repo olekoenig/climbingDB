@@ -1,4 +1,4 @@
-DATADIR = "../data/"
+DATADIR = "data/"
 CRAGS_CSV_FILE = DATADIR + "crags.csv"
 ROUTES_CSV_FILE = DATADIR + "routes.csv"
 BOULDERS_CSV_FILE = DATADIR + "boulders.csv"

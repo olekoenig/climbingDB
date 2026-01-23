@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from climbingQuery import ClimbingQuery
-from grade import Ole_to_French
+from .climbingQuery import ClimbingQuery
+from .grade import Ole_to_French
 
 if shutil.which("latex"):
     plt.rcParams['text.usetex'] = True

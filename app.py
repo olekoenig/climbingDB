@@ -4,9 +4,9 @@ streamlit run app.py
 
 import streamlit as st
 import matplotlib.pyplot as plt
-from climbingQuery import ClimbingQuery
-from display_multipitches import create_multipitch_visualization
-from grade import Grade
+
+from climbingdb import ClimbingQuery, Grade
+from climbingdb.display_multipitches import create_multipitch_visualization
 
 GRADE_OPTIONS = ["All", "4a", "5a", "6a", "6b", "6c", "7a", "7a+", "7b", "7b+",
                  "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a"]
