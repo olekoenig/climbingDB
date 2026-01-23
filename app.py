@@ -13,16 +13,15 @@ GRADE_OPTIONS = ["All", "4a", "5a", "6a", "6b", "6c", "7a", "7a+", "7b", "7b+",
 
 SPORT_GRADE_SYSTEMS = ["Original", "French", "UIAA", "YDS", "Elbsandstein"]
 BOULDER_GRADE_SYSTEMS = ["Original", "Vermin", "Font"]
-ALL_GRADE_SYSTEMS = ["Original", "French", "UIAA", "YDS", "Elbsandstein", "Vermin", "Font"]
 
-DISPLAY_COLUMNS = ['name', 'grade', 'ole_grade', 'style', 'area', 'crag',
-                   'shortnote', 'notes', 'date', 'stars']
+DISPLAY_COLUMNS = ['name', 'grade', 'style', 'area', 'crag', 'notes', 'date', 'stars']
 
 
 @st.cache_resource
 def load_database():
     """Load and cache the climbing database."""
     return ClimbingQuery()
+
 
 def apply_custom_css():
     """Apply custom CSS styling for buttons."""
@@ -60,12 +59,12 @@ def render_navigation_buttons():
 
 
 def get_grade_system_options(view):
-    if view in ['Sportclimb', 'Multipitch']:
+    if view in ['Sportclimb', 'Multipitch', 'Projects']:
         return SPORT_GRADE_SYSTEMS
     elif view == 'Boulder':
         return BOULDER_GRADE_SYSTEMS
-    else:  # Projects
-        return ALL_GRADE_SYSTEMS
+    else:
+        return None
 
 
 def render_sidebar_filters(db):
@@ -127,28 +126,47 @@ def fetch_routes(db, filters):
         )
 
 
+def format_grade_display(row, discipline):
+    result = row['grade']
+
+    # Add ernsthaftigkeit for multipitches
+    if discipline == 'Multipitch' and row.get('ernsthaftigkeit'):
+        result += f" {row['ernsthaftigkeit']}"
+
+    if row.get('shortnote'):
+        result += f" ({row['shortnote']})"
+
+    return result
+
+
 def process_routes_display(routes, selected_grade_system):
-    routes_sorted = routes.sort_values(by="ole_grade", ascending=False)
-    routes_display = routes_sorted[DISPLAY_COLUMNS].copy()
+    routes = routes.sort_values(by="ole_grade", ascending=False)
+
+    if st.session_state.view == "Multipitch":
+        DISPLAY_COLUMNS.insert(2, 'length')
 
     # Convert grades if a different system is selected
     if selected_grade_system != "Original":
-        routes_display['grade'] = routes_sorted['ole_grade'].apply(
+        routes['grade'] = routes['ole_grade'].apply(
             lambda x: Grade.from_ole_grade(x, selected_grade_system)
         )
 
-    return routes_sorted, routes_display
+    return routes
 
 
-def render_statistics(routes_sorted):
+def render_statistics(routes, selected_grade_system):
     col1, col2, col3, col4, col5 = st.columns(5)
 
+    hardest_grade = routes.iloc[0]['grade']
+    if selected_grade_system != "Original":
+        hardest_grade = Grade.from_ole_grade(Grade(hardest_grade).conv_grade(), selected_grade_system)
+
     metrics = [
-        ("Total Routes", len(routes_sorted)),
-        ("Hardest Grade", routes_sorted.iloc[0]['grade']),
-        ("Crags", routes_sorted['crag'].nunique()),
-        ("Areas", routes_sorted['area'].nunique()),
-        ("Countries", routes_sorted['country'].nunique())
+        ("Total Routes", len(routes)),
+        ("Hardest Grade", hardest_grade),
+        ("Crags", routes['crag'].nunique()),
+        ("Areas", routes['area'].nunique()),
+        ("Countries", routes['country'].nunique())
     ]
 
     for col, (label, value) in zip([col1, col2, col3, col4, col5], metrics):
@@ -156,22 +174,38 @@ def render_statistics(routes_sorted):
             st.metric(label, value)
 
 
-def render_multipitch_visualization(routes_sorted):
+def render_multipitch_visualization(routes):
     with st.spinner("Generating visualization..."):
-        fig = create_multipitch_visualization(routes_sorted)
+        fig = create_multipitch_visualization(routes)
         st.pyplot(fig)
         plt.close(fig)
     st.markdown("---")
 
 
-def render_routes_table(routes_display):
+def render_routes_table(routes):
+    # Merge grade, ernsthaftigkeit, and shortnote
+    routes['grade'] = routes.apply(
+        lambda row: format_grade_display(row, st.session_state.view), axis=1)
+
+    if st.session_state.view == "Multipitch":
+        routes['length'] = routes.apply(
+            lambda row: f"{row['length']:.0f}m" if row['length'] else "", axis=1)
+
     st.dataframe(
-        routes_display,
+        routes[DISPLAY_COLUMNS],
         use_container_width=True,
         height=600,
         hide_index=True,
         column_config={
-            "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD")
+            "name": st.column_config.TextColumn("Name"),
+            "grade": st.column_config.TextColumn("Grade"),
+            "length": st.column_config.TextColumn("Length"),
+            "style": st.column_config.TextColumn("Style"),
+            "area": st.column_config.TextColumn("Area"),
+            "crag": st.column_config.TextColumn("Crag"),
+            "notes": st.column_config.TextColumn("Notes"),
+            "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
+            "stars": st.column_config.NumberColumn("Stars")
         }
     )
 
@@ -216,18 +250,15 @@ def main():
     routes = fetch_routes(db, filters)
 
     if len(routes) > 0:
-        routes_sorted, routes_display = process_routes_display(
-            routes,
-            filters['grade_system']
-        )
+        routes = process_routes_display(routes, filters['grade_system'])
 
-        render_statistics(routes_sorted)
+        render_statistics(routes, filters['grade_system'])
         st.markdown("---")
 
         if st.session_state.view == 'Multipitch':
-            render_multipitch_visualization(routes_sorted)
+            render_multipitch_visualization(routes)
 
-        render_routes_table(routes_display)
+        render_routes_table(routes)
     else:
         st.warning("No routes match your filters. Try adjusting the filter criteria.")
 
