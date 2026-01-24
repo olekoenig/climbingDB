@@ -6,7 +6,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 
 from climbingdb import ClimbingQuery, Grade
-from climbingdb.display_multipitches import create_multipitch_visualization
+from climbingdb.visualizations import plot_grade_pyramid, plot_multipitches
 
 GRADE_OPTIONS_ROUTES = ["All", "4a", "5a", "6a", "6b", "6c", "7a", "7a+", "7b", "7b+",
                         "7c", "7c+", "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a"]
@@ -102,7 +102,8 @@ def render_sidebar_filters(db):
         min_value=0.0,
         max_value=3.0,
         value=0.0,
-        step=1.0
+        step=1.0,
+        format="%.0f",
     )
 
     return {
@@ -131,11 +132,7 @@ def fetch_routes(db, filters):
 
 
 def format_grade_display(row, discipline):
-    result = row['grade'] if row['grade'] else ""
-
-    # If grade is None/empty, return empty string
-    if not result:
-        return ""
+    result = row['grade']
 
     # Add ernsthaftigkeit for multipitches
     if discipline == 'Multipitch' and row.get('ernsthaftigkeit'):
@@ -190,9 +187,19 @@ def render_statistics(routes, selected_grade_system):
             st.metric(label, value)
 
 
-def render_multipitch_visualization(routes):
+def render_visualizations(routes):
     with st.spinner("Generating visualization..."):
-        fig = create_multipitch_visualization(routes)
+        if st.session_state.view == 'Multipitch':
+            fig = plot_multipitches(routes)
+        elif st.session_state.view == 'Sportclimb':
+            fig = plot_grade_pyramid(routes, grades = GRADE_OPTIONS_ROUTES[1:],
+                                     title="My Sport Climbing Grade Pyramid")
+        elif st.session_state.view == 'Boulder':
+            fig = plot_grade_pyramid(routes, grades = GRADE_OPTIONS_BOULDERS[1:],
+                                     title="My Boulder Grade Pyramid")
+        else:
+            return
+
         st.pyplot(fig)
         plt.close(fig)
     st.markdown("---")
@@ -271,8 +278,7 @@ def main():
         render_statistics(routes, filters['grade_system'])
         st.markdown("---")
 
-        if st.session_state.view == 'Multipitch':
-            render_multipitch_visualization(routes)
+        render_visualizations(routes)
 
         render_routes_table(routes)
     else:
