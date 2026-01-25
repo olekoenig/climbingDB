@@ -20,7 +20,8 @@ def plot_multipitches(mp_dataframe):
     norm = matplotlib.colors.Normalize(vmin=min_grade, vmax=max_grade, clip=True)
     mapper = cm.ScalarMappable(norm=norm, cmap=matplotlib.colormaps.get_cmap('RdYlGn_r'))
 
-    fig, ax = plt.subplots(figsize=(.37 * len(mp.name), 7))
+    xwidth = max(.37 * len(mp.name), 15)
+    fig, ax = plt.subplots(figsize=(xwidth, xwidth/3))
 
     for index, row in mp.iterrows():
         avg_pitch_length = row.length / len(row.pitches_ole_grade)
