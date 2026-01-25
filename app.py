@@ -76,6 +76,15 @@ def render_sidebar_filters(db):
     area_options = ["All"] + all_areas
     selected_area = st.sidebar.selectbox("Area", area_options)
 
+    # Auto-switch discipline if area only has one discipline
+    if selected_area != "All":
+        area_disciplines = db.data[(db.data['area'] == selected_area) &
+                                   (db.data.project != "X")]['discipline'].unique().tolist()
+
+        if len(area_disciplines) == 1 and st.session_state.view != area_disciplines[0]:
+            st.session_state.view = area_disciplines[0]
+            st.rerun()
+
     grade_operation = st.sidebar.selectbox(
         "Grade Operation",
         [">=", "=="],
@@ -269,6 +278,7 @@ def main():
     st.markdown("---")
 
     apply_custom_css()
+
     render_navigation_buttons()
 
     filters = render_sidebar_filters(db)
