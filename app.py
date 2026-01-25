@@ -132,7 +132,10 @@ def fetch_routes(db, filters):
 
 
 def format_grade_display(row, discipline):
-    result = row['grade']
+    result = str(row.get('grade', ''))
+
+    if not result:
+        return "No grade"
 
     # Add ernsthaftigkeit for multipitches
     if discipline == 'Multipitch' and row.get('ernsthaftigkeit'):
