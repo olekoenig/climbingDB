@@ -84,7 +84,8 @@ def plot_grade_pyramid(routes, grades, title="Grade Distribution", figsize=(15, 
     counts = []
     for ii in range(len(grades)):
         # Count routes where: current_grade <= route < next_grade
-        lower = ole_grades[ii]
+        # Count slash grades to upper end (10/10+ counts as 10+)
+        lower = ole_grades[ii] - 0.5
         upper = ole_grades[ii + 1] if ii < len(grades)-1 else 100
         count = len(routes[(routes['ole_grade'] >= lower) & (routes['ole_grade'] < upper)])
         counts.append(count)
