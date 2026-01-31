@@ -179,24 +179,46 @@ def process_routes_display(routes, selected_grade_system):
     return routes
 
 
-def render_statistics(routes, selected_grade_system):
-    col1, col2, col3, col4, col5 = st.columns(5)
+def render_metric(cols, metric):
+    for col, (label, value) in zip(cols, metric):
+        with col:
+            st.metric(label, value)
+
+
+def render_grade_metrics(routes, selected_grade_system):
+    col1, col2, col3 = st.columns(3)
 
     hardest_grade = routes.iloc[0]['grade']
+    hardest_flash = routes[routes['style'] == "F"].iloc[0]['grade'] if len(routes[routes['style'] == "F"]) > 0 else None
+    hardest_onsight = routes[routes['style'] == "o.s."].iloc[0]['grade'] if len(routes[routes['style'] == "o.s."]) > 0 else None
+
     if selected_grade_system != "Original":
         hardest_grade = Grade.from_ole_grade(Grade(hardest_grade).conv_grade(), selected_grade_system)
+        hardest_onsight = Grade.from_ole_grade(Grade(hardest_onsight).conv_grade(), selected_grade_system)
+        hardest_flash = Grade.from_ole_grade(Grade(hardest_flash).conv_grade(), selected_grade_system)
 
-    metrics = [
+    grade_metrics = [("Hardest Grade", hardest_grade)]
+
+    if hardest_onsight:
+        grade_metrics.append(("Hardest Onsight", hardest_onsight))
+    if hardest_flash:
+        grade_metrics.append(("Hardest Flash", hardest_flash))
+
+
+    render_metric([col1, col2, col3], grade_metrics)
+
+
+def render_area_metrics(routes):
+    col1, col2, col3, col4 = st.columns(4)
+
+    area_metrics = [
         ("Total Routes", len(routes)),
-        ("Hardest Grade", hardest_grade),
         ("Crags", routes['crag'].nunique()),
         ("Areas", routes['area'].nunique()),
         ("Countries", routes['country'].nunique())
     ]
 
-    for col, (label, value) in zip([col1, col2, col3, col4, col5], metrics):
-        with col:
-            st.metric(label, value)
+    render_metric([col1, col2, col3, col4], area_metrics)
 
 
 def render_visualizations(routes):
@@ -214,6 +236,15 @@ def render_visualizations(routes):
 
         st.pyplot(fig)
         plt.close(fig)
+    st.markdown("---")
+
+
+def render_dashboard(routes, grade_system):
+    render_area_metrics(routes)
+    st.markdown("---")
+    render_visualizations(routes)
+    st.markdown("---")
+    render_grade_metrics(routes, grade_system)
     st.markdown("---")
 
 
@@ -288,10 +319,7 @@ def main():
     if len(routes) > 0:
         routes = process_routes_display(routes, filters['grade_system'])
 
-        render_statistics(routes, filters['grade_system'])
-        st.markdown("---")
-
-        render_visualizations(routes)
+        render_dashboard(routes, filters['grade_system'])
 
         render_routes_table(routes)
     else:
