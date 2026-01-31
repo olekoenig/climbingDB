@@ -1,8 +1,7 @@
-from .grade import Grade, French
+from .grade import Grade
 from .config import *
 
 import pandas as pd
-import matplotlib.pyplot as plt
 
 
 class ClimbingQuery:
@@ -14,7 +13,7 @@ class ClimbingQuery:
           self.data = self._import_routes()
 
      def __str__(self):
-          df = self.getFilteredRoutes()[['name','grade','style','crag','shortnote','notes','date','stars']]
+          df = self.get_filtered_routes()[['name','grade','style','crag','shortnote','notes','date','stars']]
           return df.__str__()
 
      def _import_routes(self):
@@ -37,7 +36,7 @@ class ClimbingQuery:
           df_boulders["discipline"] = "Boulder"
 
           df_multipitches["discipline"] = "Multipitch"
-          self.convert_multipitch_pitches(df_multipitches)
+          self._convert_multipitch_pitches(df_multipitches)
 
           df = pd.concat([df_sport, df_multipitches, df_boulders], sort = True)
 
@@ -53,7 +52,7 @@ class ClimbingQuery:
 
           return df
 
-     def convert_multipitch_pitches(self, df):
+     def _convert_multipitch_pitches(self, df):
           """Convert the column "pitches" into numerical ole_grade."""
           pitches_ole_grades = []
           for index, row in df.iterrows():
@@ -65,43 +64,6 @@ class ClimbingQuery:
                     pitches_ole_grades.append([Grade(row.grade).conv_grade()])
           
           df["pitches_ole_grade"] = pitches_ole_grades
-
-     def print_route_numbers(self):
-          """Prints the number of routes in each grade and plots a histogram."""
-          # Copy the data frame, otherwise it is overridden
-          routes = self.data[self.data.project!="X"].copy()
-          print("Number of Routes >= 8a: \t{}".format(len(routes[routes.ole_grade>=Grade("8a").conv_grade()])))
-          print("Total number of routes: \t{}".format(len(routes)))
-
-          # Plot the route distribution with internal pandas function
-          # routes.hist(column="ole_grade",bins=30) ; plt.show()
-          # Plot all grades (also slash grades)
-          x = list(French.keys()) #.sort()
-          y = [len(routes[routes.ole_grade==Grade(grade).conv_grade()]) for grade in x]
-          plt.bar(x,y) ; plt.show()
-
-          # Plot route distribution
-          # Need to account for the slash grades, so one cannot only
-          # plot the grades of, e.g., 8a, 8a+ etc. but has to get also
-          # the routes grated 8a/8a+.
-          # A route gradet 8a/8a+ belongs to the 8a bar.
-          fig, ax = plt.subplots(figsize=(20,10))
-          grades=('4a','5a','6a','6b','6c','7a','7a+','7b','7b+',
-                  '7c','7c+','8a','8a+','8b','8b+','8c')
-          pos_x=[Grade(xx).conv_grade() for xx in grades]
-          for ii in range(1,len(grades)-1,1):
-               g=Grade(grades[ii]).conv_grade()
-               gup=Grade(grades[ii+1]).conv_grade()
-               # Get all routes >= 8a
-               len_glo=len(routes[routes.ole_grade>=g])
-               # Get all routes >=8a+
-               len_gup=len(routes[routes.ole_grade>=gup])
-               # Number of routes is set of len_glo AND len_gup
-               len_tot=len_glo-len_gup
-               ax.bar(g, len_tot, color="blue")
-          ax.set_xticks(pos_x)
-          ax.set_xticklabels(grades)
-          plt.show()
           
      def get_multipitches(self):
           df = self.data[self.data['discipline'] == "Multipitch"]
@@ -122,7 +84,7 @@ class ClimbingQuery:
                projects = projects[projects.crag == crag]
 
           return projects.sort_values(by=["ole_grade"])
-     
+
      def get_filtered_routes(self, discipline="Sportclimb",
                              crag=None, area=None, grade=None, style=None,
                              stars=None, operation="=="):
