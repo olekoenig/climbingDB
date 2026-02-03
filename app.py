@@ -50,14 +50,13 @@ def render_navigation_buttons():
 
     cols = st.columns([2, 2, 2, 2, 4])
 
-    for col, (label, view_name) in zip(cols, disciplines):
-        with col:
-            button_type = "primary" if st.session_state.view == view_name else "secondary"
-            st.button(
-                label,
-                type=button_type,
-                on_click=lambda v=view_name: st.session_state.update({'view': v})
-            )
+    for col, (label, discipline) in zip(cols, disciplines):
+        button_type = "primary" if st.session_state.view == discipline else "secondary"
+        if col.button(label, type=button_type):
+            if st.session_state.view != discipline:
+                st.session_state.selected_area = "All"
+            st.session_state.view = discipline
+            st.rerun()
 
 
 def get_grade_system_options(view):
@@ -74,7 +73,7 @@ def render_sidebar_filters(db):
 
     all_areas = sorted(db.data['area'].unique().tolist())
     area_options = ["All"] + all_areas
-    selected_area = st.sidebar.selectbox("Area", area_options)
+    selected_area = st.sidebar.selectbox("Area", area_options, key='selected_area')
 
     # Auto-switch discipline if area only has one discipline
     if selected_area != "All":
@@ -243,7 +242,6 @@ def render_dashboard(routes, grade_system):
     render_area_metrics(routes)
     st.markdown("---")
     render_visualizations(routes)
-    st.markdown("---")
     render_grade_metrics(routes, grade_system)
     st.markdown("---")
 
