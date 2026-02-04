@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from .grade import Ole_to_French, Grade
+from climbingdb.grade import Ole_to_French, Grade
 
 if shutil.which("latex"):
     plt.rcParams['text.usetex'] = True
@@ -82,12 +82,12 @@ def plot_grade_pyramid(routes, grades, title="Grade Distribution", figsize=(15, 
 
     # Count routes in each grade bin
     counts = []
+    lower = 0
     for ii in range(len(grades)):
-        # Count routes where: current_grade <= route < next_grade
-        # Count slash grades to upper end (10/10+ counts as 10+)
-        lower = ole_grades[ii] - 0.5
-        upper = ole_grades[ii + 1] if ii < len(grades)-1 else 100
-        count = len(routes[(routes['ole_grade'] >= lower) & (routes['ole_grade'] < upper)])
+        # (Slash grades are counted to upper end, so 10/10+ counts as 10+ in grade pyramid)
+        upper = ole_grades[ii]
+        count = len(routes[(routes['ole_grade'] > lower) & (routes['ole_grade'] <= upper)])
+        lower = upper
         counts.append(count)
 
     fig, ax = plt.subplots(figsize=figsize)
