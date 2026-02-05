@@ -165,8 +165,6 @@ if __name__=="__main__":
      # print("\nPrint the route info of Odins Tafel")
      # print(db.get_route_info("Odins Tafel"))
 
-     # db.print_route_numbers()
-
      # print(db.get_projects(area="Frankenjura"))
 
      #print(db.get_filtered_routes(discipline="Boulder", area="Frankenjura"))

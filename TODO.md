@@ -1,4 +1,10 @@
 - Multipitches: Picture of wall uploadable, can mark the starting points/belays on the picture by clicking, put that into database
 - Frontend:
-  - add stats: hardest flash, hardest onsight
   - cannot shift notes window when expanded
+  - add "reset all filters" button
+  - zoom into plots
+  - Weltkarte mit Kletterorten
+  - Sandbagger's Choice button
+- Backend:
+  - Downgrade slash grades!
+  - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)

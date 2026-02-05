@@ -4,13 +4,8 @@ python3 -m unittest tests/test_grade.py
 """
 
 import unittest
-import sys
-import os
 
-wdir = os.getcwd().split("tests")[0]
-sys.path.append(wdir)
-
-from climbingdb import Grade
+from ..grade import Grade
 
 class TestGrades(unittest.TestCase):
     def test_sportclimbs(self):
