@@ -26,3 +26,5 @@ jobs:
     - name: Run tests
       run: |
         python3 -m unittest climbingdb.tests.test_grade
+	python3 -m unittest climbingdb.tests.test_models
+	
