@@ -36,13 +36,11 @@ def plot_multipitches(mp_dataframe):
                       'hatch': None
                       }
 
-            if row.pitches != "":
-                pitch = row.pitches.split(",")[c]
-                if "(" in pitch:
-                    # kwargs['alpha'] = 0.2
-                    kwargs['hatch'] = "oo"
+            if row.pitches and row.pitches[c]["led"] == True:
+                # kwargs['alpha'] = 0.2
+                kwargs['hatch'] = "oo"
 
-            kwargs['alpha'] = 0.2 if row.project == "X" else 1
+            kwargs['alpha'] = 0.2 if row.is_project else 1
 
             grade = row['grade'] if row['style'] == "" else "{} {}".format(row['grade'], row['style'])
             title = '{} ({})\n {}'.format(row['name'], grade, row['area'])
