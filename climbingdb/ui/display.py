@@ -47,6 +47,7 @@ def _prepare_display_columns(routes):
             lambda row: f"{row.get('length', 0):.0f}m" if row.get('length') else "",
             axis=1
         )
+        display_cols.insert(3, 'pitch_number')
     
     return display_cols
 
@@ -91,6 +92,7 @@ def _get_column_config():
     
     if st.session_state.view == "Multipitch":
         config["length"] = st.column_config.TextColumn("Length")
+        config["pitch_number"] = st.column_config.TextColumn("Pitches", width='stretch')
     
     return config
 

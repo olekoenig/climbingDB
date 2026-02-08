@@ -26,8 +26,10 @@ class Route(Base):
 
     # Quality and notes
     stars = Column(Integer, default=0)  # 0-3 stars
-    shortnote = Column(String(200), nullable=True)  # Brief note (soft, hard, etc.)
-    notes = Column(Text, nullable=True)  # Detailed notes
+    shortnote = Column(String(200), nullable=True)  # (soft/hard)
+    notes = Column(Text, nullable=True)
+
+    gear = Column(Text, nullable=True)  # Trad gear list
 
     # Project/milestone status
     is_project = Column(Boolean, default=False, index=True)
@@ -35,7 +37,9 @@ class Route(Base):
 
     # Multipitch specific
     ernsthaftigkeit = Column(String(10), nullable=True)  # Seriousness rating (X, R, etc.)
-    pitches = Column(JSON, nullable=True)  # List of pitch grades: ["7a", "7b", "7a+"]
+    pitches = Column(JSON, nullable=True)
+    ascent_time = Column(Float, nullable=True)  # Time in hours for multipitches
+    pitch_number = Column(Integer, nullable=True)
     length = Column(Float, nullable=True)
 
     # Timestamps

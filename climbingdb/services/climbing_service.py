@@ -1,6 +1,5 @@
 """
 Climbing database service layer.
-Replaces the old CSV-based ClimbingQuery with SQLAlchemy database queries.
 """
 
 from sqlalchemy import and_, or_
@@ -44,8 +43,9 @@ class ClimbingService:
             # Return empty DataFrame with expected columns
             return pd.DataFrame(columns=[
                 'id', 'name', 'grade', 'ole_grade', 'discipline', 'style',
-                'date', 'stars', 'shortnote', 'notes',
-                'crag', 'area', 'country', 'ernsthaftigkeit', 'pitches', 'length',
+                'date', 'stars', 'shortnote', 'notes', 'gear',
+                'crag', 'area', 'country',
+                'ernsthaftigkeit', 'pitches', 'length', 'ascent_time', 'pitch_number',
                 'pitches_ole_grade', 'is_project', 'is_milestone'
             ])
 
@@ -70,6 +70,7 @@ class ClimbingService:
                 'stars': route.stars,
                 'shortnote': route.shortnote if route.shortnote else '',
                 'notes': route.notes if route.notes else '',
+                'gear': route.gear if route.gear else '',
                 'crag': route.crag.name if route.crag else '',
                 'area': route.area.name if route.area else '',
                 'country': route.country.name if route.country else '',
@@ -77,6 +78,8 @@ class ClimbingService:
                 'pitches': route.pitches,
                 'pitches_ole_grade': pitches_ole_grade,
                 'length': route.length if route.length else '',
+                'ascent_time': route.ascent_time if route.ascent_time else '',
+                'pitch_number': route.pitch_number if route.pitch_number else '',
                 'is_project': route.is_project,
                 'is_milestone': route.is_milestone,
             }
@@ -259,10 +262,11 @@ class ClimbingService:
 
         return stats
 
-    def add_route(self, name, grade, discipline, crag_name, area_name, country_name=None,
+    def add_route(self, name, grade, discipline, crag_name, area_name, country_name,
                   style=None, date=None, stars=0, shortnote=None, notes=None,
                   is_project=False, is_milestone=False,
-                  ernsthaftigkeit=None, pitches=None, length=None):
+                  gear=None,
+                  ernsthaftigkeit=None, pitches=None, length=None, ascent_time=None, pitch_number=None):
 
         # Get or create location hierarchy
         country = None
@@ -303,11 +307,14 @@ class ClimbingService:
             stars=stars,
             shortnote=shortnote,
             notes=notes,
+            gear=gear,
             is_project=is_project,
             is_milestone=is_milestone,
             ernsthaftigkeit=ernsthaftigkeit,
             pitches=pitches,
-            length=length
+            length=length,
+            ascent_time=ascent_time,
+            pitch_number=pitch_number
         )
 
         self.session.add(route)
@@ -333,8 +340,8 @@ class ClimbingService:
 
         # Update simple fields
         for field in ['name', 'grade', 'discipline', 'style', 'stars',
-                      'shortnote', 'notes', 'is_project', 'is_milestone',
-                      'ernsthaftigkeit', 'pitches', 'length']:
+                      'shortnote', 'notes', 'gear', 'is_project', 'is_milestone',
+                      'ernsthaftigkeit', 'pitches', 'length', 'ascent_time', 'pitch_number']:
             if field in kwargs:
                 setattr(route, field, kwargs[field])
 

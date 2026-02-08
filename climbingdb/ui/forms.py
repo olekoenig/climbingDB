@@ -42,8 +42,7 @@ def render_add_route_form(db, discipline):
             
             if submitted:
                 _handle_form_submission(
-                    db, discipline, name, grade_system, country, area, crag, 
-                    length, route_data
+                    db, discipline, name, country, area, crag, length, route_data
                 )
 
 
@@ -77,12 +76,17 @@ def _render_route_fields(discipline, grade_system, num_pitches=None):
     
     # Notes
     notes = st.text_area("Notes", placeholder="Detailed description...")
+
+    gear = None
+    if discipline != "Boulder":
+        gear = st.text_input("Gear", placeholder="e.g., 10 quick draws, cams #0.5-3", help="Trad gear used")
     
     # Multipitch-specific
     ernsthaftigkeit = None
     pitches = None
+    ascent_time = None
     if discipline == "Multipitch":
-        ernsthaftigkeit, pitches = _render_multipitch_fields(num_pitches, grade_options)
+        ernsthaftigkeit, ascent_time, pitches = _render_multipitch_fields(num_pitches, grade_options)
     
     return {
         'grade': grade,
@@ -93,15 +97,19 @@ def _render_route_fields(discipline, grade_system, num_pitches=None):
         'is_project': is_project,
         'is_milestone': is_milestone,
         'notes': notes,
+        'gear': gear,
         'ernsthaftigkeit': ernsthaftigkeit,
-        'pitches': pitches
+        'pitches': pitches,
+        'ascent_time': ascent_time,
+        'pitch_number': num_pitches
     }
 
 
 def _render_multipitch_fields(num_pitches, grade_options):
     """Render multipitch-specific fields."""
     ernsthaftigkeit = st.selectbox("Ernsthaftigkeit", ["", "R", "X"])
-    
+    ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0, step=0.5)
+
     with st.expander("⛰️ Pitch Details", expanded=False):
         st.markdown("Enter grade and whether pitch was led for each pitch:")
         
@@ -112,30 +120,28 @@ def _render_multipitch_fields(num_pitches, grade_options):
         # Render pitch inputs
         pitches_list = []
         for i in range(num_pitches):
-            col_pitch, col_led = st.columns([3, 1])
-            
-            with col_pitch:
-                pitch_grade = st.selectbox(
-                    f"Pitch {i + 1} Grade",
-                    grade_options,
-                    key=f"pitch_grade_{i}",
-                    label_visibility="collapsed"
-                )
-            
-            with col_led:
-                pitch_led = st.checkbox(
-                    "Led",
-                    value=st.session_state.pitch_data[i]["led"],
-                    key=f"pitch_led_{i}",
-                    help="Check if led, uncheck if followed"
-                )
-            
-            pitches_list.append({"grade": pitch_grade, "led": pitch_led})
+            col1, col2, col3, col4 = st.columns([2, 1, 1, 2])
+
+            with col1:
+                pitch_grade = st.selectbox(f"P{i+1} Grade", grade_options, key=f"pitch_grade_{i}")
+            with col2:
+                pitch_led = st.checkbox("Led", value=True, key=f"pitch_led_{i}")
+            with col3:
+                pitch_length = st.number_input("Pitch Length (meters)", min_value=0, key=f"pitch_length_{i}")
+            with col4:
+                pitch_name = st.text_input("Pitch Name", key=f"pitch_name_{i}")
+
+            pitches_list.append({
+                "grade": pitch_grade,
+                "led": pitch_led,
+                "pitch_length": pitch_length,
+                "pitch_name": pitch_name
+            })
     
-    return ernsthaftigkeit, pitches_list
+    return ernsthaftigkeit, ascent_time, pitches_list
 
 
-def _handle_form_submission(db, discipline, name, grade_system, country, area, crag, length, route_data):
+def _handle_form_submission(db, discipline, name, country, area, crag, length, route_data):
     """Handle form submission and route creation."""
     # Validation
     errors = validate_route_data(name, route_data['grade'], area, crag, country)
@@ -160,8 +166,10 @@ def _handle_form_submission(db, discipline, name, grade_system, country, area, c
             is_project=route_data['is_project'],
             is_milestone=route_data['is_milestone'],
             ernsthaftigkeit=route_data['ernsthaftigkeit'],
+            length=length,
             pitches=route_data['pitches'],
-            length=length
+            ascent_time=route_data['ascent_time'],
+            pitch_number=route_data['pitch_number'],
         )
         
         st.success(f"✅ Successfully added: {route.name} ({route.grade})")
