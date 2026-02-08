@@ -67,7 +67,8 @@ def plot_multipitches(mp_dataframe):
     plt.tight_layout()
     return fig
 
-def plot_grade_pyramid(routes, grades, title="Grade Distribution", figsize=(15, 5)):
+def plot_grade_pyramid(routes, grades, sandbaggers_choice="Round down",
+                       title="Grade Distribution", figsize=(15, 5)):
     # Get min and max ole_grade from the filtered routes
     min_ole = routes['ole_grade'].min()
     max_ole = routes['ole_grade'].max()
@@ -80,12 +81,16 @@ def plot_grade_pyramid(routes, grades, title="Grade Distribution", figsize=(15, 
 
     # Count routes in each grade bin
     counts = []
-    lower = 0
+    lower_grade = -1
     for ii in range(len(grades)):
-        # (Slash grades are counted to upper end, so 10/10+ counts as 10+ in grade pyramid)
-        upper = ole_grades[ii]
-        count = len(routes[(routes['ole_grade'] > lower) & (routes['ole_grade'] <= upper)])
-        lower = upper
+        current_grade = ole_grades[ii]
+        next_grade = ole_grades[ii+1] if ii < len(grades)-1 else 100
+
+        if sandbaggers_choice == "Round down":
+            count = len(routes[(routes['ole_grade'] >= current_grade) & (routes['ole_grade'] < next_grade)])
+        else:
+            count = len(routes[(routes['ole_grade'] > lower_grade) & (routes['ole_grade'] <= current_grade)])
+        lower_grade = current_grade
         counts.append(count)
 
     fig, ax = plt.subplots(figsize=figsize)

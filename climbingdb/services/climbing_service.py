@@ -5,6 +5,7 @@ Replaces the old CSV-based ClimbingQuery with SQLAlchemy database queries.
 
 from sqlalchemy import and_, or_
 import pandas as pd
+from datetime import datetime
 
 from ..models import SessionLocal, Route, Crag, Area, Country
 from ..grade import Grade
@@ -257,6 +258,152 @@ class ClimbingService:
             stats['hardest_grade'] = hardest.grade
 
         return stats
+
+    def add_route(self, name, grade, discipline, crag_name, area_name, country_name=None,
+                  style=None, date=None, stars=0, shortnote=None, notes=None,
+                  is_project=False, is_milestone=False,
+                  ernsthaftigkeit=None, pitches=None, length=None):
+
+        # Get or create location hierarchy
+        country = None
+        if country_name:
+            country = self.session.query(Country).filter(Country.name == country_name).first()
+            if not country:
+                country = Country(name=country_name)
+                self.session.add(country)
+                self.session.flush()
+
+        area = self.session.query(Area).filter(Area.name == area_name).first()
+        if not area:
+            area = Area(name=area_name, country=country)
+            self.session.add(area)
+            self.session.flush()
+
+        crag = self.session.query(Crag).filter(
+            Crag.name == crag_name,
+            Crag.area_id == area.id
+        ).first()
+        if not crag:
+            crag = Crag(name=crag_name, area=area)
+            self.session.add(crag)
+            self.session.flush()
+
+        # Parse date if string
+        if isinstance(date, str):
+            date = datetime.strptime(date, '%Y-%m-%d').date()
+
+        # Create route (ole_grade computed automatically by @validates)
+        route = Route(
+            name=name,
+            grade=grade,
+            discipline=discipline,
+            crag=crag,
+            style=style,
+            date=date,
+            stars=stars,
+            shortnote=shortnote,
+            notes=notes,
+            is_project=is_project,
+            is_milestone=is_milestone,
+            ernsthaftigkeit=ernsthaftigkeit,
+            pitches=pitches,
+            length=length
+        )
+
+        self.session.add(route)
+        self.session.commit()
+
+        return route
+
+    def update_route(self, route_id, **kwargs):
+        """
+        Update an existing route.
+
+        Args:
+            route_id: ID of the route to update
+            **kwargs: Fields to update (name, grade, style, date, stars, etc.)
+
+        Returns:
+            Updated Route object or None if not found
+        """
+        route = self.session.query(Route).filter(Route.id == route_id).first()
+
+        if not route:
+            return None
+
+        # Update simple fields
+        for field in ['name', 'grade', 'discipline', 'style', 'stars',
+                      'shortnote', 'notes', 'is_project', 'is_milestone',
+                      'ernsthaftigkeit', 'pitches', 'length']:
+            if field in kwargs:
+                setattr(route, field, kwargs[field])
+
+        # Handle date parsing
+        if 'date' in kwargs:
+            date = kwargs['date']
+            if isinstance(date, str):
+                date = datetime.strptime(date, '%Y-%m-%d').date()
+            route.date = date
+
+        # Handle location changes (crag/area/country)
+        if 'crag_name' in kwargs or 'area_name' in kwargs:
+            area_name = kwargs.get('area_name')
+            crag_name = kwargs.get('crag_name')
+            country_name = kwargs.get('country_name')
+
+            if area_name:
+                # Get or create area
+                country = None
+                if country_name:
+                    country = self.session.query(Country).filter(Country.name == country_name).first()
+                    if not country:
+                        country = Country(name=country_name)
+                        self.session.add(country)
+                        self.session.flush()
+
+                area = self.session.query(Area).filter(Area.name == area_name).first()
+                if not area:
+                    area = Area(name=area_name, country=country)
+                    self.session.add(area)
+                    self.session.flush()
+
+                # Get or create crag
+                if crag_name:
+                    crag = self.session.query(Crag).filter(
+                        Crag.name == crag_name,
+                        Crag.area_id == area.id
+                    ).first()
+                    if not crag:
+                        crag = Crag(name=crag_name, area=area)
+                        self.session.add(crag)
+                        self.session.flush()
+
+                    route.crag = crag
+
+        self.session.commit()
+        return route
+
+    def delete_route(self, route_id):
+        route = self.session.query(Route).filter(Route.id == route_id).first()
+
+        if not route:
+            return False
+
+        self.session.delete(route)
+        self.session.commit()
+        return True
+
+    def get_route_by_id(self, route_id):
+        return self.session.query(Route).filter(Route.id == route_id).first()
+
+    def get_route_by_name(self, name, crag_name=None):
+        query = self.session.query(Route).filter(Route.name == name)
+
+        # Optional crag name to narrow search.
+        if crag_name:
+            query = query.join(Route.crag).filter(Crag.name == crag_name)
+
+        return query.first()
 
 
 if __name__ == "__main__":

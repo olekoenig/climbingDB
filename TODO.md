@@ -1,10 +1,15 @@
 - Multipitches: Picture of wall uploadable, can mark the starting points/belays on the picture by clicking, put that into database
 - Frontend:
   - cannot shift notes window when expanded
-  - add "reset all filters" button
   - zoom into plots
   - Weltkarte mit Kletterorten
-  - Sandbagger's Choice button
+  - add box to select if slash grades should be selectable
 - Backend:
   - Downgrade slash grades!
   - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)
+  - add option to add routes
+  - incorporate GEAR REPORT for tradclimbs
+  - refactor pitches interface:
+    - add length/name/grade of individual pitches in form
+    - add number of pitches to backend
+  - multipitches: add ascent time
