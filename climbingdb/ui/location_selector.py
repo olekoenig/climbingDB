@@ -27,7 +27,7 @@ def _render_country_selector(db, discipline):
     col1, col2 = st.columns(2)
 
     with col1:
-        existing_countries = [c.name for c in db.session.query(Country)
+        existing_countries = [name for (name,) in db.session.query(Country.name)
             .join(Country.areas)
             .join(Area.crags)
             .join(Crag.routes)
@@ -47,14 +47,14 @@ def _render_area_selector(db, discipline, country_filter):
     col1, col2 = st.columns(2)
     
     with col1:
-        query = db.session.query(Area).join(Crag.area).join(Crag.routes)
+        query = db.session.query(Area.name).join(Crag.area).join(Crag.routes)
         filters = [Route.discipline == discipline]
         
         if country_filter:
             query = query.join(Area.country)
             filters.append(Country.name == country_filter)
         
-        existing_areas = [a.name for a in query.filter(and_(*filters)).distinct().order_by(Area.name).all()]
+        existing_areas = [name for (name,) in query.filter(and_(*filters)).distinct().order_by(Area.name).all()]
         area_select = st.selectbox("Area", [""] + existing_areas, key="area_select_existing")
     
     with col2:
@@ -68,7 +68,7 @@ def _render_crag_selector(db, discipline, country_filter, area_filter):
     col1, col2 = st.columns(2)
     
     with col1:
-        query = db.session.query(Crag).join(Crag.area).join(Crag.routes)
+        query = db.session.query(Crag.name).join(Crag.area).join(Crag.routes)
         filters = [Route.discipline == discipline]
         
         if area_filter:
@@ -77,7 +77,7 @@ def _render_crag_selector(db, discipline, country_filter, area_filter):
             query = query.join(Area.country)
             filters.append(Country.name == country_filter)
         
-        existing_crags = [c.name for c in query.filter(and_(*filters)).distinct().order_by(Crag.name).all()]
+        existing_crags = [name for (name,) in query.filter(and_(*filters)).distinct().order_by(Crag.name).all()]
         crag_select = st.selectbox("Crag", [""] + existing_crags, key="crag_select_existing")
     
     with col2:
@@ -91,7 +91,7 @@ def _render_route_selector(db, discipline, country_filter, area_filter, crag_fil
     col1, col2 = st.columns(2)
     
     with col1:
-        query = db.session.query(Route)
+        query = db.session.query(Route.name)
         filters = [Route.discipline == discipline]
         
         if crag_filter:
@@ -103,8 +103,8 @@ def _render_route_selector(db, discipline, country_filter, area_filter, crag_fil
         if country_filter:
             query = query.join(Route.crag).join(Crag.area).join(Area.country)
             filters.append(Country.name == country_filter)
-        
-        existing_routes = [r.name for r in query.filter(and_(*filters)).distinct().order_by(Route.name).all()]
+
+        existing_routes = [name for (name,) in query.filter(and_(*filters)).distinct().order_by(Route.name).all()]
         route_select = st.selectbox("Route", [""] + existing_routes, key="route_select_existing")
     
     with col2:
