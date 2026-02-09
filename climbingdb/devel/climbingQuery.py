@@ -1,1 +1,0 @@
-../climbingQuery.py
