@@ -126,9 +126,9 @@ def plot_grade_pyramid(routes, grades, sandbaggers_choice="Round down",
 
 
 if __name__ == "__main__":
-    from .climbingQuery import ClimbingQuery
+    from climbingdb.services.climbing_service import ClimbingService
 
-    db = ClimbingQuery()
+    db = ClimbingService()
 
     routes = db.get_filtered_routes()
     sport_grades = ["4a", "5a", "6a", "6b", "6c", "7a", "7a+", "7b", "7b+",
