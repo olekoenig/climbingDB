@@ -1,7 +1,7 @@
 import os
 
-# Database URL - SQLite for local development
-# (switch to PostgreSQL for deployment for many users later)
+# For local development, use environment variable with SQLite
+# For Streamlit Cloud, uses secrets.toml
 DATADIR = "data/"
 DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{DATADIR}climbing.db')
 

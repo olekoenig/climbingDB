@@ -4,5 +4,7 @@
   - zoom into plots
   - Weltkarte mit Kletterorten
   - add box to select if slash grades should be selectable
+  - add privacy for notes: in settings, can decide if one wants to show or not
+  - trad routes can be onsighted!
 - Backend:
   - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)
