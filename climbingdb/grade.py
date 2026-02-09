@@ -182,11 +182,11 @@ v_max = 17
 v_keys = ["V" + str(x) for x in range(0, v_max)]
 v_vals = range(0, v_max)
 Vermin = dict(zip(v_keys, v_vals))
-v_slashes_keys = [f"V{x}/{x+1}" for x in range(0, v_max)]
-v_slashes_vals = [x + 0.5 for x in range(0, v_max)]
+v_slashes_keys = [f"V{x}/{x+1}" for x in range(1, v_max)]
+v_slashes_vals = [x + 0.5 for x in range(1, v_max)]
 V_slashes = dict(zip(v_slashes_keys, v_slashes_vals))
 Vermin.update(V_slashes)
-Vermin.update({'VB': 0, 'L': 0, 'V0-': 0.25, 'V0+': 0.5})
+Vermin.update({'VB': -0.5, 'V0-': -0.25, 'V0+': 0.25})  # 'L': 0
 
 Font = {
     '4': 0,

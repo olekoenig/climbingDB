@@ -14,16 +14,6 @@ from ..grade import Grade
 
 
 def parse_multipitch_pitches(pitches_str):
-    """
-    Convert comma-separated pitch grades to list of dicts.
-
-    Args:
-        pitches_str: String like "7a, 7b, (7c+), 8a"
-
-    Returns:
-        List of dicts: [{"grade": "7a", "led": True}, {"grade": "7c+", "led": False}, ...]
-        Grades in parentheses are marked as led=False (followed)
-    """
     if not pitches_str or pitches_str == "":
         return None
 
@@ -41,7 +31,12 @@ def parse_multipitch_pitches(pitches_str):
             grade = pitch
             led = True
 
-        result.append({"grade": grade, "led": led})
+        result.append({
+            "grade": grade,
+            "led": led,
+            "pitch_length": None,
+            "pitch_name": None
+        })
 
     return result
 
@@ -187,7 +182,10 @@ def import_routes_from_csv(csv_file, discipline, session):
                 is_milestone=is_milestone,
                 ernsthaftigkeit=ernsthaftigkeit,
                 pitches=pitches,
-                length=length
+                length=length,
+                gear=row.get('gear', None),  # If column exists in CSV
+                ascent_time=row.get('ascent_time', None),
+                pitch_number=len(pitches) if pitches else None  # Auto-calculate
             )
 
             # Override ole_grade for sport-graded boulders (keep original grade visible)

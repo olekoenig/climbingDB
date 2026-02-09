@@ -1,10 +1,10 @@
 - Multipitches: Picture of wall uploadable, can mark the starting points/belays on the picture by clicking, put that into database
 - Frontend:
   - cannot shift notes window when expanded
-  - add "reset all filters" button
   - zoom into plots
   - Weltkarte mit Kletterorten
-  - Sandbagger's Choice button
+  - add box to select if slash grades should be selectable
+  - add privacy for notes: in settings, can decide if one wants to show or not
+  - trad routes can be onsighted!
 - Backend:
-  - Downgrade slash grades!
   - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)

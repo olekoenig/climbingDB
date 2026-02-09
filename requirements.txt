@@ -2,3 +2,5 @@ streamlit
 pandas
 matplotlib
 sqlalchemy
+datetime
+psycopg2-binary
