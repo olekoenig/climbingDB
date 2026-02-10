@@ -63,8 +63,8 @@ def main():
 
     if len(routes) > 0:
         routes = convert_grades(routes, filters['grade_system'])
-        render_add_route_form(db, st.session_state.view)
         render_dashboard(routes)
+        render_add_route_form(db, st.session_state.view)
         render_routes_table(routes)
     else:
         st.warning("No routes match your filters. Try adjusting the filter criteria.")

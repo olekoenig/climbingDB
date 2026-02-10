@@ -6,6 +6,7 @@
   - add box to select if slash grades should be selectable
   - add privacy for notes: in settings, can decide if one wants to show or not
   - trad routes can be onsighted!
+  - first time clicking on reset all filters creates: "The widget with key "stars_select" was created with a default value but also had its value set via the Session State API."
 - Backend:
   - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)
 - add 8a.nu import feature
