@@ -15,7 +15,7 @@ GRADE_OPTIONS_BOULDERS = [
 SPORT_GRADE_SYSTEMS = ["Original", "French", "UIAA", "YDS", "Elbsandstein"]
 BOULDER_GRADE_SYSTEMS = ["Original", "Vermin", "Font"]
 
-DISPLAY_COLUMNS = ['name', 'grade', 'style', 'area', 'crag', 'notes', 'date', 'stars']
+DISPLAY_COLUMNS = ['name', 'grade', 'ole_grade', 'style', 'area', 'crag', 'notes', 'date', 'stars']
 
 CUSTOM_CSS = """
     <style>

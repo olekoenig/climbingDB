@@ -82,6 +82,7 @@ def _get_column_config():
     config = {
         "name": st.column_config.TextColumn("Name"),
         "grade": st.column_config.TextColumn("Grade"),
+        "ole_grade": None,  # Hide by default
         "style": st.column_config.TextColumn("Style"),
         "area": st.column_config.TextColumn("Area"),
         "crag": st.column_config.TextColumn("Crag"),
