@@ -11,7 +11,7 @@ class Area(Base):
 
     # Fields
     name = Column(String(200), nullable=False, index=True)
-    country_id = Column(Integer, ForeignKey('countries.id'), nullable=True)
+    country_id = Column(Integer, ForeignKey('countries.id'), nullable=True, index=True)
     notes = Column(Text, nullable=True)
 
     # Relationships
