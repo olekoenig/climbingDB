@@ -3,6 +3,7 @@ Climbing database service layer.
 """
 
 from sqlalchemy import and_, or_
+from sqlalchemy.orm import joinedload, contains_eager
 import pandas as pd
 from datetime import datetime
 
@@ -106,18 +107,22 @@ class ClimbingService:
         # Start with base query (exclude projects)
         query = self.session.query(Route).filter(Route.is_project == False)
 
-        # Join tables for filtering by area/country
-        query = query.join(Route.crag).join(Crag.area).join(Area.country, isouter=True)
+        # Always eager load relationships (needed for display)
+        # Use explicit join + contains_eager only if filtering by location
+        if area or crag:
+            query = query.join(Route.crag).join(Crag.area)
+            query = query.options(contains_eager(Route.crag).contains_eager(Crag.area))
 
-        # Apply filters
+            if area:
+                query = query.filter(Area.name == area)
+            if crag:
+                query = query.filter(Crag.name == crag)
+        else:
+            # No location filtering - use joinedload
+            query = query.options(joinedload(Route.crag).joinedload(Crag.area))
+
         if discipline:
             query = query.filter(Route.discipline == discipline)
-
-        if crag:
-            query = query.filter(Crag.name == crag)
-
-        if area:
-            query = query.filter(Area.name == area)
 
         if style:
             query = query.filter(Route.style == style)
