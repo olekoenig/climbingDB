@@ -8,6 +8,7 @@ from .filters import render_sidebar_filters, render_filter_summary
 from .dashboard import render_dashboard
 from .display import render_routes_table, convert_grades
 from .forms import render_add_route_form
+from .auth import require_authentication, render_user_menu, render_settings_page
 
 __all__ = [
     'CUSTOM_CSS',
@@ -17,5 +18,8 @@ __all__ = [
     'render_dashboard',
     'render_routes_table',
     'convert_grades',
-    'render_add_route_form'
+    'render_add_route_form',
+    'require_authentication',
+    'render_user_menu',
+    'render_settings_page'
 ]

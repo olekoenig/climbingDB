@@ -7,6 +7,7 @@ from .country import Country
 from .area import Area
 from .crag import Crag
 from .route import Route
+from .user import User
 
 __all__ = [
     'Base',
@@ -18,5 +19,6 @@ __all__ = [
     'Country',
     'Area',
     'Crag',
-    'Route'
+    'Route',
+    'User'
 ]

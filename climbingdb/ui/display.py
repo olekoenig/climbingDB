@@ -63,7 +63,7 @@ def _format_display_fields(routes):
 
 def _format_grade_display(row, discipline):
     """Format grade with optional ernsthaftigkeit and shortnote."""
-    result = str(row.get('grade', ''))
+    result = str(row.get('grade'))
     
     if not result:
         return "No grade"
@@ -88,12 +88,10 @@ def _get_column_config():
         "crag": st.column_config.TextColumn("Crag"),
         "notes": st.column_config.TextColumn("Notes"),
         "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
-        "stars": st.column_config.NumberColumn("Stars")
+        "stars": st.column_config.NumberColumn("Stars"),
+        "length": st.column_config.TextColumn("Length"),
+        "pitch_number": st.column_config.NumberColumn("Pitches", width='stretch')
     }
-    
-    if st.session_state.view == "Multipitch":
-        config["length"] = st.column_config.TextColumn("Length")
-        config["pitch_number"] = st.column_config.TextColumn("Pitches", width='stretch')
     
     return config
 

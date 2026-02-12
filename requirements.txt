@@ -4,3 +4,4 @@ matplotlib
 sqlalchemy
 datetime
 psycopg2-binary
+streamlit-authenticator

@@ -17,9 +17,16 @@ class ClimbingService:
     Returns pandas DataFrames for compatibility with existing frontend.
     """
 
-    def __init__(self):
-        """Initialize database session."""
+    def __init__(self, user_id=None):
+        """
+        Initialize database session.
+
+        Args:
+            user_id: If provided, filters all queries by this user.
+                     If None, shows all data.
+        """
         self.session = SessionLocal()
+        self.user_id = user_id
 
     def __del__(self):
         """Close session when object is destroyed."""
@@ -29,6 +36,20 @@ class ClimbingService:
     def __str__(self):
         df = self.get_filtered_routes()[['name', 'grade', 'style', 'crag', 'shortnote', 'notes', 'date', 'stars']]
         return df.__str__()
+
+    def _base_query(self):
+        """
+        Get base query filtered by user_id if set.
+
+        Returns:
+            Query object for Route table, filtered by user if user_id is set
+        """
+        query = self.session.query(Route)
+
+        if self.user_id:
+            query = query.filter(Route.user_id == self.user_id)
+
+        return query
 
     def _routes_to_dataframe(self, routes):
         """
@@ -69,18 +90,18 @@ class ClimbingService:
                 'style': route.style if route.style else '',
                 'date': route.date,
                 'stars': route.stars,
-                'shortnote': route.shortnote if route.shortnote else '',
+                'shortnote': route.shortnote,
                 'notes': route.notes if route.notes else '',
-                'gear': route.gear if route.gear else '',
-                'crag': route.crag.name if route.crag else '',
-                'area': route.area.name if route.area else '',
-                'country': route.country.name if route.country else '',
-                'ernsthaftigkeit': route.ernsthaftigkeit if route.ernsthaftigkeit else '',
+                'gear': route.gear,
+                'crag': route.crag.name,
+                'area': route.area.name,
+                'country': route.country.name,
+                'ernsthaftigkeit': route.ernsthaftigkeit,
                 'pitches': route.pitches,
                 'pitches_ole_grade': pitches_ole_grade,
-                'length': route.length if route.length else '',
-                'ascent_time': route.ascent_time if route.ascent_time else '',
-                'pitch_number': route.pitch_number if route.pitch_number else '',
+                'length': route.length,
+                'ascent_time': route.ascent_time,
+                'pitch_number': route.pitch_number,
                 'is_project': route.is_project,
                 'is_milestone': route.is_milestone,
             }
@@ -104,8 +125,8 @@ class ClimbingService:
         :param operation: logic operation applied to grade [default: ==], currently supported: ==,>=
         :returns: pandas DataFrame
         """
-        # Start with base query (exclude projects)
-        query = self.session.query(Route).filter(Route.is_project == False)
+        # Start with base query (already filtered by user), exclude projects
+        query = self._base_query().filter(Route.is_project == False)
 
         # Always eager load relationships (needed for display)
         # Use explicit join + contains_eager only if filtering by location
@@ -150,7 +171,7 @@ class ClimbingService:
 
     def get_multipitches(self):
         """Get all multipitch routes."""
-        query = self.session.query(Route).filter(
+        query = self._base_query().query(Route).filter(
             and_(
                 Route.discipline == "Multipitch",
                 Route.is_project == False
@@ -162,7 +183,7 @@ class ClimbingService:
 
     def get_boulders(self):
         """Get all boulder problems."""
-        query = self.session.query(Route).filter(
+        query = self._base_query().query(Route).filter(
             and_(
                 Route.discipline == "Boulder",
                 Route.is_project == False
@@ -180,7 +201,7 @@ class ClimbingService:
         :param area: Filter by area name
         :returns: pandas DataFrame
         """
-        query = self.session.query(Route).filter(Route.is_project == True)
+        query = self._base_query().filter(Route.is_project == True)
         query = query.join(Route.crag).join(Crag.area)
 
         if area:
@@ -193,7 +214,7 @@ class ClimbingService:
         return self._routes_to_dataframe(routes)
 
     def get_milestones(self):
-        query = self.session.query(Route).filter(Route.is_milestone == True)
+        query = self._base_query().filter(Route.is_milestone == True)
         query = query.join(Route.crag).join(Crag.area)
         routes = query.order_by(Route.ole_grade.asc()).all()
         return self._routes_to_dataframe(routes)
@@ -239,16 +260,17 @@ class ClimbingService:
 
     def get_statistics(self):
         """Get overall statistics."""
+        base_query = self._base_query()
         stats = {
-            'total_routes': self.session.query(Route).filter(Route.is_project == False).count(),
-            'total_projects': self.session.query(Route).filter(Route.is_project == True).count(),
-            'sportclimbs': self.session.query(Route).filter(
+            'total_routes': base_query.filter(Route.is_project == False).count(),
+            'total_projects': base_query.filter(Route.is_project == True).count(),
+            'sportclimbs': base_query.filter(
                 and_(Route.discipline == "Sportclimb", Route.is_project == False)
             ).count(),
-            'boulders': self.session.query(Route).filter(
+            'boulders': base_query.filter(
                 and_(Route.discipline == "Boulder", Route.is_project == False)
             ).count(),
-            'multipitches': self.session.query(Route).filter(
+            'multipitches': base_query.filter(
                 and_(Route.discipline == "Multipitch", Route.is_project == False)
             ).count(),
             'total_areas': self.session.query(Area).count(),
@@ -257,9 +279,7 @@ class ClimbingService:
         }
 
         # Get hardest route
-        hardest = self.session.query(Route).filter(
-            Route.is_project == False
-        ).order_by(Route.ole_grade.desc()).first()
+        hardest = base_query.filter(Route.is_project == False).order_by(Route.ole_grade.desc()).first()
 
         if hardest:
             stats['hardest_route'] = hardest.name
@@ -272,6 +292,9 @@ class ClimbingService:
                   is_project=False, is_milestone=False,
                   gear=None,
                   ernsthaftigkeit=None, pitches=None, length=None, ascent_time=None, pitch_number=None):
+
+        if not self.user_id:
+            raise ValueError("user_id required to add routes")
 
         # Get or create location hierarchy
         country = None
@@ -303,6 +326,7 @@ class ClimbingService:
 
         # Create route (ole_grade computed automatically by @validates)
         route = Route(
+            user_id=self.user_id,
             name=name,
             grade=grade,
             discipline=discipline,

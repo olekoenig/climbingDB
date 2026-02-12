@@ -11,6 +11,8 @@ class Route(Base):
     # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+
     # Basic info
     name = Column(String(200), nullable=False, index=True)
     grade = Column(String(20), nullable=False)  # e.g., "8a", "V10", "7b+"
@@ -47,6 +49,7 @@ class Route(Base):
     updated_at = Column(Date, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    user = relationship("User", back_populates="routes")
     crag = relationship("Crag", back_populates="routes")
 
     @validates('grade')

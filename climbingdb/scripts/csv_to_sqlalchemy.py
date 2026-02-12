@@ -1,17 +1,44 @@
 """
 Import climbing data from CSV files into SQLAlchemy database.
-
-Run as:
-    python3 -m climbingdb.scripts.import_csv
 """
 
 import pandas as pd
 from datetime import datetime
-from climbingdb.models import SessionLocal, init_db, drop_all
-from climbingdb.models import Country, Area, Crag, Route
-from climbingdb.config import ROUTES_CSV_FILE, BOULDERS_CSV_FILE, MULTIPITCHES_CSV_FILE
-from ..grade import Grade
+from sqlalchemy import text
+import getpass
+from hashlib import sha256
 
+from climbingdb.models import SessionLocal, init_db, drop_all
+from climbingdb.models import Country, Area, Crag, Route, User
+from climbingdb.config import ROUTES_CSV_FILE, BOULDERS_CSV_FILE, MULTIPITCHES_CSV_FILE
+from climbingdb.grade import Grade
+
+def _create_performance_indexes():
+    """Create database indexes for query performance."""
+    session = SessionLocal()
+
+    indexes = [
+        # Foreign key indexes (PostgreSQL doesn't auto-create these)
+        "CREATE INDEX IF NOT EXISTS ix_crags_area_id ON crags(area_id);",
+        "CREATE INDEX IF NOT EXISTS ix_areas_country_id ON areas(country_id);",
+
+        # Additional indexes from model definitions (might be redundant)
+        "CREATE INDEX IF NOT EXISTS ix_routes_discipline ON routes(discipline);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_ole_grade ON routes(ole_grade);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_is_project ON routes(is_project);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_crag_id ON routes(crag_id);",
+    ]
+
+    for idx_sql in indexes:
+        try:
+            session.execute(text(idx_sql))
+            print(f"  ✓ {idx_sql.split('INDEX')[1].split('ON')[0].strip()}")
+        except Exception as e:
+            print(f"  Error creating index: {e}")
+
+    session.commit()
+    session.close()
+    print("Indexes created")
 
 def parse_multipitch_pitches(pitches_str):
     if not pitches_str or pitches_str == "":
@@ -98,7 +125,7 @@ def get_or_create_crag(session, crag_name, area):
     return crag
 
 
-def import_routes_from_csv(csv_file, discipline, session):
+def import_routes_from_csv(csv_file, discipline, session, user_id):
     """
     Import routes from a single CSV file.
 
@@ -106,6 +133,7 @@ def import_routes_from_csv(csv_file, discipline, session):
         csv_file: Path to CSV file
         discipline: "Sportclimb", "Boulder", or "Multipitch"
         session: SQLAlchemy session
+        user_id: ID of user who will own these routes
 
     Returns:
         Number of routes imported
@@ -169,6 +197,7 @@ def import_routes_from_csv(csv_file, discipline, session):
                 length = row.get('length', '') or None
 
             route = Route(
+                user_id=user_id,
                 name=row['name'],
                 grade=row['grade'],
                 crag=crag,
@@ -234,17 +263,41 @@ def import_all_csv_files(recreate_db=True):
             return
         drop_all()
         init_db()
+
+        print("\nCreating indexes...")
+        _create_performance_indexes()
     else:
         init_db()  # Just ensure tables exist
 
     session = SessionLocal()
 
     try:
+        # PROMPT FOR USER CREDENTIALS (not hardcoded!)
+        print("\n" + "=" * 60)
+        print("Create Default User")
+        print("=" * 60)
+        print("This user will own all imported routes.")
+
+        default_username = input("\nUsername: ").strip()
+        default_email = input("Email: ").strip()
+
+        # Use getpass for password (hides input)
+        default_password = getpass.getpass("Password: ")
+        confirm_password = getpass.getpass("Confirm password: ")
+
+        if default_password != confirm_password:
+            print("Passwords don't match!")
+            return
+
+        print(f"\nCreating user: {default_username}")
+        default_user = _create_default_user(session, default_username, default_email, default_password)
+        print(f"User created with ID: {default_user.id}")
+
         # Import each discipline
         total = 0
-        total += import_routes_from_csv(ROUTES_CSV_FILE, "Sportclimb", session)
-        total += import_routes_from_csv(BOULDERS_CSV_FILE, "Boulder", session)
-        total += import_routes_from_csv(MULTIPITCHES_CSV_FILE, "Multipitch", session)
+        total += import_routes_from_csv(ROUTES_CSV_FILE, "Sportclimb", session, default_user.id)
+        total += import_routes_from_csv(BOULDERS_CSV_FILE, "Boulder", session, default_user.id)
+        total += import_routes_from_csv(MULTIPITCHES_CSV_FILE, "Multipitch", session, default_user.id)
 
         # Print summary
         print("\n" + "=" * 60)
@@ -277,6 +330,45 @@ def import_all_csv_files(recreate_db=True):
         raise
     finally:
         session.close()
+
+
+def _create_default_user(session, username, email, password):
+    """
+    Create the default user for imported routes.
+
+    Args:
+        session: SQLAlchemy session
+        username: Username
+        email: Email address
+        password: Plain text password (will be hashed)
+
+    Returns:
+        User object
+    """
+    # Check if user already exists
+    existing_user = session.query(User).filter(User.username == username).first()
+    if existing_user:
+        print(f"  ⚠️  User '{username}' already exists")
+        use_existing = input(f"  Use existing user '{username}'? (yes/no): ")
+        if use_existing.lower() == 'yes':
+            return existing_user
+        else:
+            print("Import cancelled.")
+            raise ValueError("User already exists")
+
+    # Hash the password (SHA256 for now, will upgrade to bcrypt later with authentication)
+    password_hash = sha256(password.encode()).hexdigest()
+
+    user = User(
+        username=username,
+        email=email,
+        password_hash=password_hash
+    )
+
+    session.add(user)
+    session.commit()
+
+    return user
 
 
 def verify_import():

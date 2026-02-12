@@ -17,12 +17,17 @@ from climbingdb.ui import (
     convert_grades,
     render_add_route_form
 )
+from climbingdb.ui.auth import (
+    require_authentication,
+    render_user_menu,
+    render_settings_page
+)
 
 
 @st.cache_resource
-def load_database():
+def load_database(_user_id):
     """Load and cache the climbing database."""
-    return ClimbingService()
+    return ClimbingService(user_id=_user_id)
 
 
 def fetch_routes(db, filters):
@@ -46,11 +51,21 @@ def main():
         layout="wide"
     )
 
+    # Require authentication - stops execution if not logged in
+    if not require_authentication():
+        return
+
+    # User is authenticated - load their database
+    db = load_database(st.session_state.user_id)
+
+    # Check if showing settings page
+    if st.session_state.get('show_settings', False):
+        render_settings_page()
+        return
+
     # Initialize session state
     if 'view' not in st.session_state:
         st.session_state.view = 'Sportclimb'
-
-    db = load_database()
 
     # Render UI
     st.title("🧗 My Climbing Logbook")
@@ -70,6 +85,7 @@ def main():
         st.warning("No routes match your filters. Try adjusting the filter criteria.")
 
     render_filter_summary(filters)
+    render_user_menu()
 
 
 if __name__ == '__main__':
