@@ -1,11 +1,12 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, Text, Boolean, JSON
-from sqlalchemy.orm import relationship, validates
-from datetime import datetime
-from .base import Base
-from ..grade import Grade
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, Boolean
+from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
+
+from climbingdb.models.base import Base
+from climbingdb.models.mixins import ClimbableMixin
 
 
-class Route(Base):
+class Route(Base, ClimbableMixin):
     __tablename__ = 'routes'
 
     # Primary key
@@ -13,51 +14,31 @@ class Route(Base):
 
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
 
-    # Basic info
+    # Global ascent info
     name = Column(String(200), nullable=False, index=True)
-    grade = Column(String(20), nullable=False)  # e.g., "8a", "V10", "7b+"
-    ole_grade = Column(Float, nullable=False, index=True)  # Numeric grade for sorting/filtering
-
-    # Location
     crag_id = Column(Integer, ForeignKey('crags.id'), nullable=False, index=True)
-
-    # Climbing details
     discipline = Column(String(20), nullable=False, index=True)  # 'Sportclimb', 'Boulder', 'Multipitch'
-    style = Column(String(20), nullable=True)  # 'o.s.', 'F', 'RP', etc.
     date = Column(Date, nullable=True, index=True)
-
-    # Quality and notes
-    stars = Column(Integer, default=0)  # 0-3 stars
-    shortnote = Column(String(200), nullable=True)  # (soft/hard)
-    notes = Column(Text, nullable=True)
-
-    gear = Column(Text, nullable=True)  # Trad gear list
-
-    # Project/milestone status
+    stars = Column(Integer, default=0)
     is_project = Column(Boolean, default=False, index=True)
     is_milestone = Column(Boolean, default=False, index=True)
 
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
     # Multipitch specific
-    ernsthaftigkeit = Column(String(10), nullable=True)  # Seriousness rating (X, R, etc.)
-    pitches = Column(JSON, nullable=True)
-    ascent_time = Column(Float, nullable=True)  # Time in hours for multipitches
+    ascent_time = Column(Float, nullable=True)  # [hours]
     pitch_number = Column(Integer, nullable=True)
     length = Column(Float, nullable=True)
 
-    # Timestamps
-    created_at = Column(Date, default=datetime.utcnow)
-    updated_at = Column(Date, default=datetime.utcnow, onupdate=datetime.utcnow)
+    timestamp = datetime.now(timezone.utc)
+    created_at = Column(Date, default=timestamp)
+    updated_at = Column(Date, default=timestamp, onupdate=timestamp)
 
     # Relationships
     user = relationship("User", back_populates="routes")
     crag = relationship("Crag", back_populates="routes")
-
-    @validates('grade')
-    def compute_ole_grade(self, key, grade_value):
-        """Automatically compute ole_grade when grade is set."""
-        if grade_value:
-            self.ole_grade = Grade(grade_value).conv_grade()
-        return grade_value
+    pitches = relationship("Pitch", back_populates="route")
 
     def __repr__(self):
         return f"<Route(id={self.id}, name='{self.name}', grade='{self.grade}', discipline='{self.discipline}')>"
