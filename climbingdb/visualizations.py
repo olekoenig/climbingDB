@@ -52,7 +52,7 @@ def plot_multipitches(mp_dataframe):
     ax.text(.99, 0.95, "Solid: Lead\n Hashed: Follow\n Transparent: Project", transform=ax.transAxes, fontsize=10,
             va='top', ha="right", bbox=props)
 
-    plt.title("Multipitch Routebook Ole")
+    plt.title("My multipitch distribution", fontsize=14, fontweight='bold', pad=20)
     plt.xticks(rotation=90)
     plt.ylabel("Length [m]")
 
