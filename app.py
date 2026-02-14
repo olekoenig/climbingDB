@@ -15,7 +15,8 @@ from climbingdb.ui import (
     render_dashboard,
     render_routes_table,
     convert_grades,
-    render_add_route_form
+    render_add_route_form,
+    render_edit_delete_form
 )
 from climbingdb.ui.auth import (
     require_authentication,
@@ -74,12 +75,14 @@ def main():
 
     render_navigation_buttons()
     filters = render_sidebar_filters(db)
-    routes = fetch_routes(db, filters)
+    with st.spinner("Loading your routes..."):
+        routes = fetch_routes(db, filters)
 
     if len(routes) > 0:
         routes = convert_grades(routes, filters['grade_system'])
         render_dashboard(routes)
         render_add_route_form(db, st.session_state.view)
+        render_edit_delete_form(db, routes)
         render_routes_table(routes)
     else:
         st.warning("No routes match your filters. Try adjusting the filter criteria.")
