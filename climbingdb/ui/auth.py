@@ -159,6 +159,9 @@ def render_settings_page():
 
 def logout():
     """Log out the current user."""
+    # Clear cache to prevent stale data
+    st.cache_resource.clear()
+
     # Clear all session state
     for key in list(st.session_state.keys()):
         del st.session_state[key]
