@@ -43,7 +43,7 @@ class ClimbingService:
                 'ole_grade': pd.Series(dtype='float'),
                 'discipline': pd.Series(dtype='str'),
                 'style': pd.Series(dtype='str'),
-                'date': pd.Series(dtype='datetime'),
+                'date': pd.Series(dtype='datetime64[D]'),
                 'stars': pd.Series(dtype='int'),
                 'shortnote': pd.Series(dtype='str'),
                 'notes': pd.Series(dtype='str'),
