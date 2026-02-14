@@ -15,17 +15,27 @@ def get_grade_system_options(discipline):
 def get_style_options(discipline):
     """Get available style options for discipline."""
     if discipline == "Boulder":
-        return ["F", "trav"]
+        return ["F"]
     elif discipline == "Sportclimb":
-        return ["o.s.", "F", "2. Go", "trad"]
+        return ["o.s.", "F", "2. Go", "toprope"]
     else:  # Multipitch
-        return ["o.s.", "F", "trad"]
+        return ["o.s.", "F", "AF", "followed"]
 
 
 def get_grade_options(grade_system):
     """Get sorted grade options for a grading system."""
     grade_dict = eval(grade_system)  # French, UIAA, etc.
     return [""] + [k for k, v in sorted(grade_dict.items(), key=lambda x: x[1])]
+
+
+def get_shortnote_options(discipline):
+    """Get short note options for discipline."""
+    shortnote = ["", "soft", "hard"]
+    if discipline == "Boulder":
+        shortnote.append("trav")
+    else:
+        shortnote.append("trad")
+    return shortnote
 
 
 def validate_route_data(name, grade, area, crag, country):

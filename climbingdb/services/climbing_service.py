@@ -7,29 +7,18 @@ from sqlalchemy.orm import joinedload, contains_eager
 import pandas as pd
 from datetime import datetime
 
-from ..models import SessionLocal, Route, Crag, Area, Country
+from ..models import SessionLocal, Route, Crag, Area, Country, Pitch
 from ..grade import Grade
 
 
 class ClimbingService:
-    """
-    Service class to query the climbing database.
-    Returns pandas DataFrames for compatibility with existing frontend.
-    """
+    """Service class to query the climbing database."""
 
     def __init__(self, user_id=None):
-        """
-        Initialize database session.
-
-        Args:
-            user_id: If provided, filters all queries by this user.
-                     If None, shows all data.
-        """
         self.session = SessionLocal()
         self.user_id = user_id
 
     def __del__(self):
-        """Close session when object is destroyed."""
         if hasattr(self, 'session'):
             self.session.close()
 
@@ -38,48 +27,52 @@ class ClimbingService:
         return df.__str__()
 
     def _base_query(self):
-        """
-        Get base query filtered by user_id if set.
-
-        Returns:
-            Query object for Route table, filtered by user if user_id is set
-        """
+        """Get base query filtered by user_id if set."""
         query = self.session.query(Route)
-
         if self.user_id:
             query = query.filter(Route.user_id == self.user_id)
-
         return query
 
-    def _routes_to_dataframe(self, routes):
-        """
-        Convert list of Route objects to pandas DataFrame.
-
-        Args:
-            routes: List of Route SQLAlchemy objects
-
-        Returns:
-            pandas DataFrame with route data
-        """
+    def _routes_to_dataframe(self, routes) -> pd.DataFrame:
+        """Convert list of Route objects to pandas DataFrame."""
         if not routes:
-            # Return empty DataFrame with expected columns
-            return pd.DataFrame(columns=[
-                'id', 'name', 'grade', 'ole_grade', 'discipline', 'style',
-                'date', 'stars', 'shortnote', 'notes', 'gear',
-                'crag', 'area', 'country',
-                'ernsthaftigkeit', 'pitches', 'length', 'ascent_time', 'pitch_number',
-                'pitches_ole_grade', 'is_project', 'is_milestone'
-            ])
+            return pd.DataFrame({
+                'id': pd.Series(dtype='int'),
+                'name': pd.Series(dtype='str'),
+                'grade': pd.Series(dtype='str'),
+                'ole_grade': pd.Series(dtype='float'),
+                'discipline': pd.Series(dtype='str'),
+                'style': pd.Series(dtype='str'),
+                'date': pd.Series(dtype='datetime'),
+                'stars': pd.Series(dtype='int'),
+                'shortnote': pd.Series(dtype='str'),
+                'notes': pd.Series(dtype='str'),
+                'gear': pd.Series(dtype='str'),
+                'crag': pd.Series(dtype='str'),
+                'area': pd.Series(dtype='str'),
+                'country': pd.Series(dtype='str'),
+                'ernsthaftigkeit': pd.Series(dtype='str'),
+                'length': pd.Series(dtype='float'),
+                'ascent_time': pd.Series(dtype='float'),
+                'pitch_number': pd.Series(dtype='int'),
+                'is_project': pd.Series(dtype='bool'),
+                'is_milestone': pd.Series(dtype='bool'),
+                'pitches_data': pd.Series(dtype='object')
+            })
 
         data = []
         for route in routes:
-            # Compute pitches_ole_grade for multipitches
-            pitches_ole_grade = None
-            if route.discipline == "Multipitch" and route.pitches:
-                pitches_ole_grade = [Grade(p['grade']).conv_grade() for p in route.pitches]
-            elif route.discipline == "Multipitch":
-                # No pitch info, use total grade
-                pitches_ole_grade = [route.ole_grade]
+            pitches_data = None
+            if route.discipline == "Multipitch":
+                if route.pitches:
+                    pitches_data = {
+                        'led': [p.led for p in route.pitches],
+                        'grade': [p.grade for p in route.pitches],
+                        'ole_grade': [p.ole_grade for p in route.pitches]
+                    }
+                else:
+                    # Somewhat of a hack to make multipitch visualization work
+                    pitches_data = {'ole_grade': [route.ole_grade]}
 
             row = {
                 'id': route.id,
@@ -90,46 +83,33 @@ class ClimbingService:
                 'style': route.style if route.style else '',
                 'date': route.date,
                 'stars': route.stars,
-                'shortnote': route.shortnote,
+                'shortnote': route.shortnote if route.shortnote else '',
                 'notes': route.notes if route.notes else '',
-                'gear': route.gear,
-                'crag': route.crag.name,
-                'area': route.area.name,
-                'country': route.country.name,
-                'ernsthaftigkeit': route.ernsthaftigkeit,
-                'pitches': route.pitches,
-                'pitches_ole_grade': pitches_ole_grade,
+                'gear': route.gear if route.gear else '',
+                'crag': route.crag.name if route.crag else '',
+                'area': route.area.name if route.area else '',
+                'country': route.country.name if route.country else '',
+                'ernsthaftigkeit': route.ernsthaftigkeit if route.ernsthaftigkeit else '',
                 'length': route.length,
                 'ascent_time': route.ascent_time,
                 'pitch_number': route.pitch_number,
                 'is_project': route.is_project,
                 'is_milestone': route.is_milestone,
+                'pitches_data': pitches_data
             }
             data.append(row)
 
-        df = pd.DataFrame(data)
-        return df
+        return pd.DataFrame(data)
 
     def get_filtered_routes(self, discipline="Sportclimb",
                             crag=None, area=None, grade=None, style=None,
                             stars=None, operation="=="):
-        """
-        Return a route list under the applied filters.
+        """Return filtered routes as DataFrame."""
+        query = self._base_query()
 
-        :param discipline: Sportclimb, Boulder, or Multipitch
-        :param crag: Crag name, e.g. 'Schlaraffenland'
-        :param area: Area name, e.g. 'Frankenjura'
-        :param grade: Grade, e.g. '8a' or '9+/10-'
-        :param style: Onsight 'o.s.' or Flash 'F'
-        :param stars: Minimum number of stars [0,1,2,3]
-        :param operation: logic operation applied to grade [default: ==], currently supported: ==,>=
-        :returns: pandas DataFrame
-        """
-        # Start with base query (already filtered by user), exclude projects
-        query = self._base_query().filter(Route.is_project == False)
+        if discipline != "Multipitch":
+            query = query.filter(Route.is_project == False)
 
-        # Always eager load relationships (needed for display)
-        # Use explicit join + contains_eager only if filtering by location
         if area or crag:
             query = query.join(Route.crag).join(Crag.area)
             query = query.options(contains_eager(Route.crag).contains_eager(Crag.area))
@@ -139,7 +119,6 @@ class ClimbingService:
             if crag:
                 query = query.filter(Crag.name == crag)
         else:
-            # No location filtering - use joinedload
             query = query.options(joinedload(Route.crag).joinedload(Crag.area))
 
         if discipline:
@@ -155,58 +134,37 @@ class ClimbingService:
             ole_grade = Grade(grade).conv_grade()
             if operation == ">=":
                 query = query.filter(Route.ole_grade >= ole_grade)
-            else:  # operation == "=="
-                # HACK: Display also slash grades (e.g., 9/9+ when filtering for 9)
+            else:
                 query = query.filter(
-                    or_(
-                        Route.ole_grade == ole_grade,
-                        Route.ole_grade == ole_grade + 0.5
-                    )
+                    or_(Route.ole_grade == ole_grade, Route.ole_grade == ole_grade + 0.5)
                 )
 
-        # Execute query and sort by grade
         routes = query.order_by(Route.ole_grade.desc()).all()
-
         return self._routes_to_dataframe(routes)
 
     def get_multipitches(self):
         """Get all multipitch routes."""
-        query = self._base_query().query(Route).filter(
-            and_(
-                Route.discipline == "Multipitch",
-                Route.is_project == False
-            )
-        )
+        query = self._base_query().filter(Route.discipline == "Multipitch")
         query = query.join(Route.crag).join(Crag.area)
         routes = query.order_by(Route.ole_grade.asc()).all()
         return self._routes_to_dataframe(routes)
 
     def get_boulders(self):
         """Get all boulder problems."""
-        query = self._base_query().query(Route).filter(
-            and_(
-                Route.discipline == "Boulder",
-                Route.is_project == False
-            )
+        query = self._base_query().filter(
+            and_(Route.discipline == "Boulder", Route.is_project == False)
         )
         query = query.join(Route.crag).join(Crag.area)
         routes = query.order_by(Route.ole_grade.asc()).all()
         return self._routes_to_dataframe(routes)
 
     def get_projects(self, crag=None, area=None):
-        """
-        Returns the project list in a crag or area.
-
-        :param crag: Filter by crag name
-        :param area: Filter by area name
-        :returns: pandas DataFrame
-        """
+        """Get projects, optionally filtered by crag or area."""
         query = self._base_query().filter(Route.is_project == True)
         query = query.join(Route.crag).join(Crag.area)
 
         if area:
             query = query.filter(Area.name == area)
-
         if crag:
             query = query.filter(Crag.name == crag)
 
@@ -214,89 +172,21 @@ class ClimbingService:
         return self._routes_to_dataframe(routes)
 
     def get_milestones(self):
+        """Get milestone routes."""
         query = self._base_query().filter(Route.is_milestone == True)
         query = query.join(Route.crag).join(Crag.area)
         routes = query.order_by(Route.ole_grade.asc()).all()
         return self._routes_to_dataframe(routes)
 
-    def get_crag_info(self, cragname):
-        """
-        Get info about a crag.
-
-        :param cragname: Name of the crag
-        """
-        crag = self.session.query(Crag).filter(Crag.name == cragname).first()
-
-        if not crag or not crag.notes:
-            print(f"No information about the crag {cragname} available")
-        else:
-            print(crag.notes)
-
-    def get_route_info(self, routename):
-        """
-        Get the logged information about a route.
-
-        :param routename: Name of the route
-        """
-        route = self.session.query(Route).filter(Route.name == routename).first()
-
-        if not route or not route.notes:
-            print(f"No information about the route {routename} available")
-        else:
-            print(route.notes)
-
-    def get_all_areas(self):
-        """Get list of all areas."""
-        areas = self.session.query(Area).order_by(Area.name).all()
-        return [area.name for area in areas]
-
-    def get_all_crags(self, area=None):
-        """Get list of all crags, optionally filtered by area."""
-        query = self.session.query(Crag)
-        if area:
-            query = query.join(Crag.area).filter(Area.name == area)
-        crags = query.order_by(Crag.name).all()
-        return [crag.name for crag in crags]
-
-    def get_statistics(self):
-        """Get overall statistics."""
-        base_query = self._base_query()
-        stats = {
-            'total_routes': base_query.filter(Route.is_project == False).count(),
-            'total_projects': base_query.filter(Route.is_project == True).count(),
-            'sportclimbs': base_query.filter(
-                and_(Route.discipline == "Sportclimb", Route.is_project == False)
-            ).count(),
-            'boulders': base_query.filter(
-                and_(Route.discipline == "Boulder", Route.is_project == False)
-            ).count(),
-            'multipitches': base_query.filter(
-                and_(Route.discipline == "Multipitch", Route.is_project == False)
-            ).count(),
-            'total_areas': self.session.query(Area).count(),
-            'total_crags': self.session.query(Crag).count(),
-            'total_countries': self.session.query(Country).count(),
-        }
-
-        # Get hardest route
-        hardest = base_query.filter(Route.is_project == False).order_by(Route.ole_grade.desc()).first()
-
-        if hardest:
-            stats['hardest_route'] = hardest.name
-            stats['hardest_grade'] = hardest.grade
-
-        return stats
-
     def add_route(self, name, grade, discipline, crag_name, area_name, country_name,
                   style=None, date=None, stars=0, shortnote=None, notes=None,
-                  is_project=False, is_milestone=False,
-                  gear=None,
-                  ernsthaftigkeit=None, pitches=None, length=None, ascent_time=None, pitch_number=None):
-
+                  gear=None, is_project=False, is_milestone=False,
+                  ernsthaftigkeit=None, length=None, ascent_time=None, pitch_number=None,
+                  pitches=None, latitude=None, longitude=None):
+        """Create a new route with optional pitches."""
         if not self.user_id:
             raise ValueError("user_id required to add routes")
 
-        # Get or create location hierarchy
         country = None
         if country_name:
             country = self.session.query(Country).filter(Country.name == country_name).first()
@@ -320,11 +210,9 @@ class ClimbingService:
             self.session.add(crag)
             self.session.flush()
 
-        # Parse date if string
         if isinstance(date, str):
             date = datetime.strptime(date, '%Y-%m-%d').date()
 
-        # Create route (ole_grade computed automatically by @validates)
         route = Route(
             user_id=self.user_id,
             name=name,
@@ -333,62 +221,69 @@ class ClimbingService:
             crag=crag,
             style=style,
             date=date,
-            stars=stars,
+            stars=int(stars),
             shortnote=shortnote,
             notes=notes,
             gear=gear,
             is_project=is_project,
             is_milestone=is_milestone,
             ernsthaftigkeit=ernsthaftigkeit,
-            pitches=pitches,
             length=length,
             ascent_time=ascent_time,
-            pitch_number=pitch_number
+            pitch_number=pitch_number,
+            latitude=latitude,
+            longitude=longitude
         )
 
         self.session.add(route)
-        self.session.commit()
+        self.session.flush()
 
+        if discipline == "Multipitch" and pitches:
+            for i, pitch_data in enumerate(pitches):
+                pitch = Pitch(
+                    route=route,
+                    pitch_number=i + 1,
+                    grade=pitch_data.get('grade', ''),
+                    led=pitch_data.get('led', True),
+                    style=pitch_data.get('style'),
+                    stars=pitch_data.get('stars', 0),
+                    shortnote=pitch_data.get('shortnote'),
+                    notes=pitch_data.get('notes'),
+                    gear=pitch_data.get('gear'),
+                    ernsthaftigkeit=pitch_data.get('ernsthaftigkeit'),
+                    pitch_length=pitch_data.get('pitch_length'),
+                    pitch_name=pitch_data.get('pitch_name')
+                )
+                self.session.add(pitch)
+
+        self.session.commit()
         return route
 
-    def update_route(self, route_id, **kwargs):
-        """
-        Update an existing route.
-
-        Args:
-            route_id: ID of the route to update
-            **kwargs: Fields to update (name, grade, style, date, stars, etc.)
-
-        Returns:
-            Updated Route object or None if not found
-        """
+    def update_route(self, route_id: int, **kwargs):
+        """Update an existing route."""
         route = self.session.query(Route).filter(Route.id == route_id).first()
 
         if not route:
             return None
 
-        # Update simple fields
         for field in ['name', 'grade', 'discipline', 'style', 'stars',
                       'shortnote', 'notes', 'gear', 'is_project', 'is_milestone',
-                      'ernsthaftigkeit', 'pitches', 'length', 'ascent_time', 'pitch_number']:
+                      'ernsthaftigkeit', 'length', 'ascent_time', 'pitch_number']:
             if field in kwargs:
                 setattr(route, field, kwargs[field])
 
-        # Handle date parsing
         if 'date' in kwargs:
             date = kwargs['date']
             if isinstance(date, str):
                 date = datetime.strptime(date, '%Y-%m-%d').date()
             route.date = date
 
-        # Handle location changes (crag/area/country)
         if 'crag_name' in kwargs or 'area_name' in kwargs:
             area_name = kwargs.get('area_name')
             crag_name = kwargs.get('crag_name')
             country_name = kwargs.get('country_name')
 
             if area_name:
-                # Get or create area
                 country = None
                 if country_name:
                     country = self.session.query(Country).filter(Country.name == country_name).first()
@@ -403,7 +298,6 @@ class ClimbingService:
                     self.session.add(area)
                     self.session.flush()
 
-                # Get or create crag
                 if crag_name:
                     crag = self.session.query(Crag).filter(
                         Crag.name == crag_name,
@@ -419,7 +313,8 @@ class ClimbingService:
         self.session.commit()
         return route
 
-    def delete_route(self, route_id):
+    def delete_route(self, route_id: int) -> bool:
+        """Delete a route."""
         route = self.session.query(Route).filter(Route.id == route_id).first()
 
         if not route:
@@ -429,13 +324,28 @@ class ClimbingService:
         self.session.commit()
         return True
 
-    def get_route_by_id(self, route_id):
-        return self.session.query(Route).filter(Route.id == route_id).first()
+    def get_route_by_id(self, route_id: int):
+        # Debug: Check what database we're connected to
+        """
+        from sqlalchemy import text
+        db_info = self.session.execute(text("SELECT 1")).fetchone()
+        print(f"Connected to: {self.session.bind.url}")
+
+        # Check if route exists at all (no user filter)
+        route_all = self.session.query(Route).filter(Route.id == route_id).first()
+        if route_all:
+            print(f"Route {route_id} exists, user_id: {route_all.user_id}")
+        else:
+            print(f"Route {route_id} doesn't exist in database")
+            # Show what IDs DO exist
+            all_ids = [r.id for r in self.session.query(Route.id).all()]
+            print(f"Sample route IDs in database: {all_ids}")
+        """
+        return self._base_query().filter(Route.id == route_id).first()
 
     def get_route_by_name(self, name, crag_name=None):
-        query = self.session.query(Route).filter(Route.name == name)
+        query = self._base_query().filter(Route.name == name)
 
-        # Optional crag name to narrow search.
         if crag_name:
             query = query.join(Route.crag).filter(Crag.name == crag_name)
 
@@ -455,14 +365,6 @@ if __name__ == "__main__":
     boulders = db.get_boulders()
     print(boulders[['name', 'grade', 'style', 'crag', 'shortnote', 'date', 'stars']].tail(10))
 
-    print("\n=== Projects in Frankenjura ===")
-    projects = db.get_projects(area="Frankenjura")
-    print(projects[['name', 'grade', 'crag', 'area']])
-
-    print("\n=== Milestones ===")
-    milestones = db.get_milestones()
-    print(milestones[['name', 'grade', 'crag', 'area', 'date']])
-
     print("\n=== Filtered routes (8a+ sportclimbs) ===")
-    routes = db.get_filtered_routes(discipline="Sportclimb", grade="8a+", operation="==", stars=3)
+    routes = db.get_filtered_routes(discipline="Sportclimb", grade="8a", operation=">=")
     print(routes[['name', 'grade', 'crag', 'area']].head(10))
