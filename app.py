@@ -85,7 +85,8 @@ def main():
         render_edit_delete_form(db, routes)
         render_routes_table(routes)
     else:
-        st.warning("No routes match your filters. Try adjusting the filter criteria.")
+        st.warning("No routes match your filters. Try adjusting the filter criteria or add a route.")
+        render_add_route_form(db, st.session_state.view)
 
     render_filter_summary(filters)
     render_user_menu()
