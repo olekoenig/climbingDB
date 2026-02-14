@@ -2,7 +2,7 @@
 Authentication service for user management.
 """
 
-import hashlib
+import bcrypt
 from climbingdb.models import SessionLocal, User
 
 
@@ -18,8 +18,7 @@ class AuthService:
 
     @staticmethod
     def hash_password(password):
-        """Hash a password using SHA256."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     def authenticate_user(self, username, password):
         """
@@ -34,10 +33,8 @@ class AuthService:
             return None
 
         # Check password
-        password_hash = self.hash_password(password)
-        if user.password_hash == password_hash:
+        if bcrypt.checkpw(password.encode(), user.password_hash.encode()):
             return user
-
         return None
 
     def create_user(self, username, email, password):
