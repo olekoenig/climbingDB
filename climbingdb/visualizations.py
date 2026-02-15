@@ -24,10 +24,10 @@ def plot_multipitches(mp_dataframe):
     fig, ax = plt.subplots(figsize=(xwidth, xwidth/3))
 
     for index, row in mp.iterrows():
-        avg_pitch_length = row.length / len(row.pitches_ole_grade)
+        avg_pitch_length = row.length / row.pitch_number
 
-        for c, pitch in enumerate(row.pitches_ole_grade):
-            color = mapper.to_rgba(row.pitches_ole_grade[c])
+        for c, pitch in enumerate(row.pitches_data["ole_grade"]):
+            color = mapper.to_rgba(row.pitches_data["ole_grade"][c])
 
             kwargs = {'bottom': c * avg_pitch_length,
                       'color': color,
@@ -36,7 +36,7 @@ def plot_multipitches(mp_dataframe):
                       'hatch': None
                       }
 
-            if row.pitches and row.pitches[c]["led"] == True:
+            if row.pitch_number > 1 and row.pitches_data["led"][c] == False:
                 # kwargs['alpha'] = 0.2
                 kwargs['hatch'] = "oo"
 
@@ -52,7 +52,7 @@ def plot_multipitches(mp_dataframe):
     ax.text(.99, 0.95, "Solid: Lead\n Hashed: Follow\n Transparent: Project", transform=ax.transAxes, fontsize=10,
             va='top', ha="right", bbox=props)
 
-    plt.title("Multipitch Routebook Ole")
+    plt.title("My multipitch distribution", fontsize=14, fontweight='bold', pad=20)
     plt.xticks(rotation=90)
     plt.ylabel("Length [m]")
 

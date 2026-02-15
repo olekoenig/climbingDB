@@ -15,14 +15,21 @@ from climbingdb.ui import (
     render_dashboard,
     render_routes_table,
     convert_grades,
-    render_add_route_form
+    render_add_route_form,
+    render_edit_delete_form
 )
+from climbingdb.ui.auth import (
+    require_authentication,
+    render_user_menu,
+    render_settings_page
+)
+from climbingdb.config import REQUIRE_AUTH
 
 
 @st.cache_resource
-def load_database():
+def load_database(_user_id):
     """Load and cache the climbing database."""
-    return ClimbingService()
+    return ClimbingService(user_id=_user_id)
 
 
 def fetch_routes(db, filters):
@@ -46,11 +53,24 @@ def main():
         layout="wide"
     )
 
+    if REQUIRE_AUTH:
+        if not require_authentication():
+            return
+        user_id = st.session_state.user_id
+    else:
+        user_id = 1
+        st.info("📺 Demo Mode - Viewing Lauchinger's climbing logbook")
+
+    db = load_database(user_id)
+
+    # Check if showing settings page
+    if st.session_state.get('show_settings', False):
+        render_settings_page()
+        return
+
     # Initialize session state
     if 'view' not in st.session_state:
         st.session_state.view = 'Sportclimb'
-
-    db = load_database()
 
     # Render UI
     st.title("🧗 My Climbing Logbook")
@@ -59,17 +79,24 @@ def main():
 
     render_navigation_buttons()
     filters = render_sidebar_filters(db)
-    routes = fetch_routes(db, filters)
+    with st.spinner("Loading your routes..."):
+        routes = fetch_routes(db, filters)
 
     if len(routes) > 0:
         routes = convert_grades(routes, filters['grade_system'])
-        render_add_route_form(db, st.session_state.view)
         render_dashboard(routes)
+        if REQUIRE_AUTH:
+            render_add_route_form(db, st.session_state.view)
+            render_edit_delete_form(db, routes)
         render_routes_table(routes)
     else:
-        st.warning("No routes match your filters. Try adjusting the filter criteria.")
+        st.warning("No routes match your filters. Try adjusting the filter criteria or add a route.")
+        render_add_route_form(db, st.session_state.view)
 
     render_filter_summary(filters)
+
+    if REQUIRE_AUTH:
+        render_user_menu()
 
 
 if __name__ == '__main__':

@@ -27,3 +27,4 @@ jobs:
       run: |
         python3 -m unittest climbingdb.tests.test_grade
         python3 -m unittest climbingdb.tests.test_models
+        python3 -m unittest climbingdb.tests.test_database_indices

@@ -3,6 +3,9 @@ Sidebar filter components.
 """
 
 import streamlit as st
+from sqlalchemy import distinct
+
+from climbingdb.models import Area, Crag, Route
 from .constants import (
     GRADE_OPTIONS_ROUTES,
     GRADE_OPTIONS_BOULDERS,
@@ -23,11 +26,15 @@ def get_grade_system_options(view):
 def get_discipline_areas(db, discipline):
     """Get areas that have routes in the specified discipline."""
     if discipline == "Projects":
-        df = db.get_projects()
+        areas = db.session.query(distinct(Area.name)).join(Area.crags).join(Crag.routes).filter(
+            Route.is_project == True
+        ).all()
     else:
-        df = db.get_filtered_routes(discipline=discipline)
-    
-    return sorted(df['area'].unique().tolist()) if len(df) > 0 else []
+        areas = db.session.query(distinct(Area.name)).join(Area.crags).join(Crag.routes).filter(
+            Route.discipline == discipline
+        ).all()
+
+    return sorted([name for (name,) in areas])
 
 
 def render_sidebar_filters(db):

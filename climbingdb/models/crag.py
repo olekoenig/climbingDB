@@ -11,11 +11,8 @@ class Crag(Base):
 
     # Fields
     name = Column(String(200), nullable=False, index=True)
-    area_id = Column(Integer, ForeignKey('areas.id'), nullable=False)
+    area_id = Column(Integer, ForeignKey('areas.id'), nullable=False, index=True)
 
-    # Optional fields for future use
-    latitude = Column(Float, nullable=True)
-    longitude = Column(Float, nullable=True)
     notes = Column(Text, nullable=True)
 
     # Relationships

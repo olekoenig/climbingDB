@@ -21,21 +21,6 @@ class TestGrades(unittest.TestCase):
         self.assertEqual(Grade("7B trav").conv_grade(), Grade("7A+").conv_grade())
         self.assertEqual(Grade("7C+").get_scale(), "Font")
         self.assertEqual(Grade("V10").conv_grade(), Grade("7C+").conv_grade())
-
-    # test5 = Grade("V")
-    # print("Input: V")
-    # print("The infered grading scale is {}".format(test5.get_scale()))
-    # print("{} is translated to {} in Ole's internal scale".format(test5, test5.conv_grade()))
-
-    # test6 = Grade("V9")
-    # print("Input: V5")
-    # print("The infered grading scale is {}".format(test6.get_scale()))
-    # print("{} is translated to {} in Ole's internal scale".format(test6, test6.conv_grade()))
-
-    # test7 = Grade("7C")
-    # print("Input: 7C")
-    # print("The infered grading scale is {}".format(test7.get_scale()))
-    # print("{} is translated to {} in Ole's internal scale".format(test7, test7.conv_grade()))
     
 if __name__ == "__main__":
     unittest.main()

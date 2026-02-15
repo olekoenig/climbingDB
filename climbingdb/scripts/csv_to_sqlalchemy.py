@@ -2,65 +2,85 @@
 Import climbing data from CSV files into SQLAlchemy database.
 
 Run as:
-    python3 -m climbingdb.scripts.import_csv
+    python3 -m climbingdb.scripts.csv_to_sqlalchemy
 """
 
 import pandas as pd
+from sqlalchemy import text
+import getpass
 from datetime import datetime
+import bcrypt
+
 from climbingdb.models import SessionLocal, init_db, drop_all
-from climbingdb.models import Country, Area, Crag, Route
+from climbingdb.models import Country, Area, Crag, Route, User, Pitch
 from climbingdb.config import ROUTES_CSV_FILE, BOULDERS_CSV_FILE, MULTIPITCHES_CSV_FILE
-from ..grade import Grade
+from climbingdb.grade import Grade
+
+
+def _create_performance_indexes():
+    """Create database indexes for query performance."""
+    session = SessionLocal()
+
+    indexes = [
+        "CREATE INDEX IF NOT EXISTS ix_crags_area_id ON crags(area_id);",
+        "CREATE INDEX IF NOT EXISTS ix_areas_country_id ON areas(country_id);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_discipline ON routes(discipline);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_ole_grade ON routes(ole_grade);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_is_project ON routes(is_project);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_crag_id ON routes(crag_id);",
+        "CREATE INDEX IF NOT EXISTS ix_routes_user_id ON routes(user_id);",
+        "CREATE INDEX IF NOT EXISTS ix_pitches_route_id ON pitches(route_id);",
+    ]
+
+    for idx_sql in indexes:
+        try:
+            session.execute(text(idx_sql))
+            print(f"  ✓ {idx_sql.split('INDEX')[1].split('ON')[0].strip()}")
+        except Exception as e:
+            print(f"  ⚠️ Error: {e}")
+
+    session.commit()
+    session.close()
+    print("✓ Indexes created")
 
 
 def parse_multipitch_pitches(pitches_str):
-    if not pitches_str or pitches_str == "":
+    """Parse comma-separated pitch grades. Parentheses indicate followed pitch."""
+    if not pitches_str:
         return None
 
-    pitches = pitches_str.split(",")
     result = []
-
-    for pitch in pitches:
+    for pitch in pitches_str.split(","):
         pitch = pitch.strip()
 
-        # Check if in parentheses (followed)
         if pitch.startswith("(") and pitch.endswith(")"):
-            grade = pitch.strip("()")
-            led = False
+            result.append({"grade": pitch.strip("()"), "led": False})
         else:
-            grade = pitch
-            led = True
-
-        result.append({
-            "grade": grade,
-            "led": led,
-            "pitch_length": None,
-            "pitch_name": None
-        })
+            result.append({"grade": pitch, "led": True})
 
     return result
 
 
 def get_or_create_country(session, country_name):
     """Get existing country or create new one."""
-    if not country_name or country_name == "":
-        return None
+    if not country_name:
+        raise ValueError("Country is required")
 
     country = session.query(Country).filter(Country.name == country_name).first()
     if not country:
         country = Country(name=country_name)
         session.add(country)
-        session.flush()  # Get the ID without committing
+        session.flush()
         print(f"  Created country: {country_name}")
+
     return country
 
 
 def get_or_create_area(session, area_name, country):
     """Get existing area or create new one."""
-    if not area_name or area_name == "":
-        return None
+    if not area_name:
+        raise ValueError("Area is required")
 
-    # Query by name and country_id to allow same area name in different countries
     query = session.query(Area).filter(Area.name == area_name)
     if country:
         query = query.filter(Area.country_id == country.id)
@@ -70,49 +90,55 @@ def get_or_create_area(session, area_name, country):
         area = Area(name=area_name, country=country)
         session.add(area)
         session.flush()
-        location = f"{area_name}, {country.name}" if country else area_name
-        print(f"  Created area: {location}")
+        print(f"  Created area: {area_name}, {country.name}")
+
     return area
 
 
 def get_or_create_crag(session, crag_name, area):
     """Get existing crag or create new one."""
-    if not crag_name or crag_name == "":
-        # Create a default crag if none specified
-        crag_name = "Unknown"
+    if not crag_name:
+        raise ValueError("Crag is required")
 
-    # Query by name and area_id
-    query = session.query(Crag).filter(Crag.name == crag_name)
-    if area:
-        query = query.filter(Crag.area_id == area.id)
+    query = session.query(Crag).filter(Crag.name == crag_name, Crag.area_id == area.id)
 
     crag = query.first()
     if not crag:
-        if not area:
-            # Need to create a default area
-            area = get_or_create_area(session, "Unknown", None)
         crag = Crag(name=crag_name, area=area)
         session.add(crag)
         session.flush()
         print(f"  Created crag: {crag_name}")
+
     return crag
 
 
-def import_routes_from_csv(csv_file, discipline, session):
-    """
-    Import routes from a single CSV file.
+def create_pitches_from_data(session, route, pitch_data):
+    """Create Pitch objects for a multipitch route."""
+    if not pitch_data:
+        return
 
-    Args:
-        csv_file: Path to CSV file
-        discipline: "Sportclimb", "Boulder", or "Multipitch"
-        session: SQLAlchemy session
+    for i, pitch_info in enumerate(pitch_data):
+        pitch = Pitch(
+            route=route,
+            pitch_number=i + 1,
+            grade=pitch_info['grade'],
+            led=pitch_info['led'],
+            style=None,
+            stars=0,
+            shortnote=None,
+            notes=None,
+            gear=None,
+            ernsthaftigkeit=None,
+            pitch_length=None,
+            pitch_name=None
+        )
+        session.add(pitch)
 
-    Returns:
-        Number of routes imported
-    """
+
+def import_routes_from_csv(csv_file, discipline, session, user_id):
+    """Import routes from CSV file."""
     print(f"\nImporting {discipline} routes from {csv_file}...")
 
-    # Read CSV
     df = pd.read_csv(
         csv_file,
         sep=';',
@@ -131,17 +157,15 @@ def import_routes_from_csv(csv_file, discipline, session):
 
     for idx, row in df.iterrows():
         try:
-            # Get or create location hierarchy
-            country = get_or_create_country(session, row.get('country', ''))
-            area = get_or_create_area(session, row.get('area', ''), country)
-            crag = get_or_create_crag(session, row.get('crag', ''), area)
+            country = get_or_create_country(session, row['country'])
+            area = get_or_create_area(session, row['area'], country)
+            crag = get_or_create_crag(session, row['crag'], area)
 
-            is_project = row.get('project', '') == 'X'
-            is_milestone = row.get('milestone', '') == 'X'
+            is_project = row['project'] == 'X' if row['project'] else False
+            is_milestone = row['milestone'] == 'X' if 'milestone' in row and row['milestone'] else False
 
-            # Parse date
             route_date = None
-            if pd.notna(row.get('date')):
+            if pd.notna(row['date']):
                 if isinstance(row['date'], str):
                     try:
                         route_date = datetime.strptime(row['date'], '%Y-%m-%d').date()
@@ -150,160 +174,180 @@ def import_routes_from_csv(csv_file, discipline, session):
                 else:
                     route_date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
 
-            # Parse stars
-            stars = 0
-            if row.get('stars', '') != '':
-                try:
-                    stars = int(row['stars'])
-                except:
-                    stars = 0
+            stars = int(row['stars']) if row['stars'] != '' else 0
 
-            # Handle multipitch-specific fields
-            pitches = None
+            style = row['style'] if row['style'] else None
+            shortnote = row['shortnote'] if row['shortnote'] else None
+            notes = row['notes'] if row['notes'] else None
+            gear = row['gear'] if 'gear' in row and row['gear'] else None
+
+            grade_str = row['grade']
+            if discipline == "Boulder":
+                grade_scale = Grade(grade_str).get_scale()
+                if grade_scale in ['YDS', 'UIAA', 'French', 'Elbsandstein']:
+                    grade_str = "VB"
+
+            pitch_data = None
             ernsthaftigkeit = None
             length = None
+            pitch_number = 1
+
             if discipline == "Multipitch":
-                pitches_str = row.get('pitches', '')
-                pitches = parse_multipitch_pitches(pitches_str)
-                ernsthaftigkeit = row.get('ernsthaftigkeit', '') or None
-                length = row.get('length', '') or None
+                pitches_str = row['pitches'] if row['pitches'] else None
+                pitch_data = parse_multipitch_pitches(pitches_str)
+                pitch_number = len(pitch_data)
+                ernsthaftigkeit = row['ernsthaftigkeit'] if row['ernsthaftigkeit'] else None
+                length = float(row['length']) if row['length'] else None
 
             route = Route(
+                user_id=user_id,
                 name=row['name'],
-                grade=row['grade'],
+                grade=grade_str,
                 crag=crag,
                 discipline=discipline,
-                style=row.get('style', '') or None,
+                style=style,
                 date=route_date,
                 stars=stars,
-                shortnote=row.get('shortnote', '') or None,
-                notes=row.get('notes', '') or None,
+                shortnote=shortnote,
+                notes=notes,
+                gear=gear,
                 is_project=is_project,
                 is_milestone=is_milestone,
                 ernsthaftigkeit=ernsthaftigkeit,
-                pitches=pitches,
+                ascent_time=None,
+                pitch_number=pitch_number,
                 length=length,
-                gear=row.get('gear', None),  # If column exists in CSV
-                ascent_time=row.get('ascent_time', None),
-                pitch_number=len(pitches) if pitches else None  # Auto-calculate
+                latitude=None,
+                longitude=None
             )
 
-            # Override ole_grade for sport-graded boulders (keep original grade visible)
-            if discipline == "Boulder" and Grade(row['grade']).get_scale() in ['YDS', 'UIAA', 'French', 'Elbsandstein']:
-                route.ole_grade = 0  # Easy boulder (5.9 or so, set to 0 for proper sorting/filtering)
-
             session.add(route)
+            session.flush()
+
+            if discipline == "Multipitch" and pitch_data:
+                create_pitches_from_data(session, route, pitch_data)
+
             imported_count += 1
 
-            # Commit every 100 routes to avoid memory issues
             if imported_count % 100 == 0:
                 session.commit()
                 print(f"  Imported {imported_count} routes...")
 
         except Exception as e:
-            print(f"\tError importing route '{row.get('name', 'unknown')}': {e}")
+            print(f"  ⚠️ Error importing '{row.get('name', 'unknown')}': {e}")
             skipped_count += 1
+            session.rollback()
             continue
 
-    # Final commit
     session.commit()
-    print(f"\tImported {imported_count} routes")
+    print(f"  ✓ Imported {imported_count} routes")
     if skipped_count > 0:
-        print(f"\tSkipped {skipped_count} routes due to errors")
+        print(f"  ⚠️ Skipped {skipped_count} routes")
 
     return imported_count
 
 
-def import_all_csv_files(recreate_db=True):
-    """
-    Import all CSV files into the database.
+def _create_default_user(session, username, email, password):
+    """Create default user for imported routes."""
+    existing_user = session.query(User).filter(User.username == username).first()
+    if existing_user:
+        print(f"  ⚠️ User '{username}' already exists")
+        use_existing = input(f"  Use existing user? (yes/no): ")
+        if use_existing.lower() == 'yes':
+            return existing_user
+        raise ValueError("User already exists")
 
-    Args:
-        recreate_db: If True, drops and recreates all tables (loses existing data!)
-    """
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    user = User(
+        username=username,
+        email=email,
+        password_hash=password_hash
+    )
+
+    session.add(user)
+    session.commit()
+
+    return user
+
+
+def import_all_csv_files(recreate_db=True):
+    """Import all CSV files into database."""
     print("=" * 60)
     print("CSV Import Script")
     print("=" * 60)
 
-    # Set up database
     if recreate_db:
-        print("\nWARNING: Dropping all existing tables and data!")
+        print("\n⚠️ WARNING: Dropping all existing tables and data!")
         response = input("Continue? (yes/no): ")
         if response.lower() != 'yes':
             print("Import cancelled.")
             return
         drop_all()
         init_db()
+        print("\n✓ Tables created")
+
+        print("\nCreating indexes...")
+        _create_performance_indexes()
     else:
-        init_db()  # Just ensure tables exist
+        init_db()
 
     session = SessionLocal()
 
     try:
-        # Import each discipline
-        total = 0
-        total += import_routes_from_csv(ROUTES_CSV_FILE, "Sportclimb", session)
-        total += import_routes_from_csv(BOULDERS_CSV_FILE, "Boulder", session)
-        total += import_routes_from_csv(MULTIPITCHES_CSV_FILE, "Multipitch", session)
+        print("\n" + "=" * 60)
+        print("Create Default User")
+        print("=" * 60)
+        print("This user will own all imported routes.\n")
 
-        # Print summary
+        default_username = input("Username: ").strip()
+        default_email = input("Email: ").strip()
+
+        default_password = getpass.getpass("Password: ")
+        confirm_password = getpass.getpass("Confirm password: ")
+
+        if default_password != confirm_password:
+            print("❌ Passwords don't match!")
+            return
+
+        if len(default_password) < 8:
+            print("❌ Password must be at least 8 characters!")
+            return
+
+        print(f"\nCreating user: {default_username}")
+        default_user = _create_default_user(session, default_username, default_email, default_password)
+        print(f"✓ User created with ID: {default_user.id}")
+
+        total = 0
+        total += import_routes_from_csv(ROUTES_CSV_FILE, "Sportclimb", session, default_user.id)
+        total += import_routes_from_csv(BOULDERS_CSV_FILE, "Boulder", session, default_user.id)
+        total += import_routes_from_csv(MULTIPITCHES_CSV_FILE, "Multipitch", session, default_user.id)
+
         print("\n" + "=" * 60)
         print("Import Summary")
         print("=" * 60)
 
-        countries = session.query(Country).count()
-        areas = session.query(Area).count()
-        crags = session.query(Crag).count()
-        routes = session.query(Route).count()
-        projects = session.query(Route).filter(Route.is_project == True).count()
-        milestones = session.query(Route).filter(Route.is_milestone == True).count()
-
-        print(f"Countries:  {countries}")
-        print(f"Areas:      {areas}")
-        print(f"Crags:      {crags}")
-        print(f"Routes:     {routes}")
+        print(f"Countries:  {session.query(Country).count()}")
+        print(f"Areas:      {session.query(Area).count()}")
+        print(f"Crags:      {session.query(Crag).count()}")
+        print(f"Routes:     {session.query(Route).count()}")
         print(f"  - Sport:  {session.query(Route).filter(Route.discipline == 'Sportclimb').count()}")
         print(f"  - Boulder: {session.query(Route).filter(Route.discipline == 'Boulder').count()}")
         print(f"  - Multi:   {session.query(Route).filter(Route.discipline == 'Multipitch').count()}")
-        print(f"Projects:   {projects}")
-        print(f"Milestones:   {milestones}")
+        print(f"Pitches:    {session.query(Pitch).count()}")
+        print(f"Projects:   {session.query(Route).filter(Route.is_project == True).count()}")
+        print(f"Milestones: {session.query(Route).filter(Route.is_milestone == True).count()}")
 
-        print("\nImport completed successfully!")
-        print(f"Database file: climbing.db")
+        print(f"\n✓ All routes assigned to user: {default_user.username}")
+        print("✅ Import completed successfully!")
 
     except Exception as e:
-        print(f"\nError during import: {e}")
+        print(f"\n❌ Error during import: {e}")
         session.rollback()
         raise
     finally:
         session.close()
 
 
-def verify_import():
-    """Quick verification of imported data."""
-    print("\n" + "=" * 60)
-    print("Verification")
-    print("=" * 60)
-
-    session = SessionLocal()
-
-    try:
-        # Show some sample data
-        print("\nSample routes:")
-        routes = session.query(Route).order_by(Route.ole_grade.desc()).limit(5).all()
-        for route in routes:
-            print(f"  {route.grade:6} - {route.name:30} ({route.discipline}) - {route.full_location}")
-
-        print("\nSample areas:")
-        areas = session.query(Area).limit(5).all()
-        for area in areas:
-            route_count = len(area.crags[0].routes) if area.crags else 0
-            print(f"  {area.full_location:40} - {len(area.crags)} crags")
-
-    finally:
-        session.close()
-
-
 if __name__ == "__main__":
     import_all_csv_files(recreate_db=True)
-    verify_import()
