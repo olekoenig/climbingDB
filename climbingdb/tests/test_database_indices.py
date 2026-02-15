@@ -4,7 +4,6 @@ Test that database indexes are properly created.
 Run as:
     python3 -m unittest climbingdb.tests.test_indexes
 """
-
 import unittest
 from sqlalchemy import text
 from climbingdb.models import SessionLocal, engine
@@ -16,6 +15,9 @@ class TestIndexes(unittest.TestCase):
     def setUpClass(cls):
         """Set up database session."""
         cls.session = SessionLocal()
+
+        if ':memory:' in str(engine.url):
+            raise unittest.SkipTest("Index tests require persistent database")
 
     @classmethod
     def tearDownClass(cls):
