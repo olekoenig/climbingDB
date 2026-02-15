@@ -12,6 +12,8 @@ def render_login_page():
     st.title("Welcome to Sandbagger's Choice")
     st.markdown("---")
 
+    st.info("📺 New here? Check out the [demo with sample data](https://olesclimbingdb.streamlit.app) first!")
+
     # Create tabs for login and signup
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
 
@@ -56,7 +58,7 @@ def render_signup_form():
 
     with st.form("signup_form"):
         new_username = st.text_input("Username", help="At least 3 characters")
-        new_email = st.text_input("Email")
+        new_email = st.text_input("Email (optional)")
         new_password = st.text_input("Password", type="password")
         confirm_password = st.text_input("Confirm Password", type="password")
 
@@ -64,8 +66,8 @@ def render_signup_form():
 
         if submitted:
             # Validation
-            if not new_username or not new_email or not new_password:
-                st.error("Please fill in all fields")
+            if not new_username or not new_password:
+                st.error("Please fill in user name and password")
                 return
 
             if new_password != confirm_password:
@@ -74,7 +76,7 @@ def render_signup_form():
 
             # Create account
             auth = AuthService()
-            success, message, user = auth.create_user(new_username, new_email, new_password)
+            success, message, user = auth.create_user(new_username, new_password, new_email)
 
             if success:
                 st.success(message)

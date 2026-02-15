@@ -37,19 +37,10 @@ class AuthService:
             return user
         return None
 
-    def create_user(self, username, email, password):
-        """
-        Create a new user.
-
-        Returns:
-            (success: bool, message: str, user: User or None)
-        """
+    def create_user(self, username, password, email=None):
         # Validation
         if len(username) < 3:
             return False, "Username must be at least 3 characters", None
-
-        if '@' not in email:
-            return False, "Invalid email address", None
 
         # Check if username exists
         existing_user = self.session.query(User).filter(User.username == username).first()
@@ -57,15 +48,16 @@ class AuthService:
             return False, "Username already exists", None
 
         # Check if email exists
-        existing_email = self.session.query(User).filter(User.email == email).first()
-        if existing_email:
-            return False, "Email already registered", None
+        if email:
+            existing_email = self.session.query(User).filter(User.email == email).first()
+            if existing_email:
+                return False, "Email already registered", None
 
         # Create user
         user = User(
             username=username,
-            email=email,
-            password_hash=self.hash_password(password)
+            password_hash=self.hash_password(password),
+            email=email
         )
 
         self.session.add(user)

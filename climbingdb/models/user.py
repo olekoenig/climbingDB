@@ -16,8 +16,8 @@ class User(Base):
 
     # User credentials
     username = Column(String(50), unique=True, nullable=False, index=True)
-    email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)  # Never store plain passwords
+    email = Column(String(100), unique=True, nullable=True)
 
     # Metadata
     created_at = Column(DateTime, default=datetime.utcnow)
