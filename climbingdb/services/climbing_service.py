@@ -187,77 +187,82 @@ class ClimbingService:
         if not self.user_id:
             raise ValueError("user_id required to add routes")
 
-        country = None
-        if country_name:
-            country = self.session.query(Country).filter(Country.name == country_name).first()
-            if not country:
-                country = Country(name=country_name)
-                self.session.add(country)
+        try:
+            country = None
+            if country_name:
+                country = self.session.query(Country).filter(Country.name == country_name).first()
+                if not country:
+                    country = Country(name=country_name)
+                    self.session.add(country)
+                    self.session.flush()
+
+            area = self.session.query(Area).filter(Area.name == area_name).first()
+            if not area:
+                area = Area(name=area_name, country=country)
+                self.session.add(area)
                 self.session.flush()
 
-        area = self.session.query(Area).filter(Area.name == area_name).first()
-        if not area:
-            area = Area(name=area_name, country=country)
-            self.session.add(area)
+            crag = self.session.query(Crag).filter(
+                Crag.name == crag_name,
+                Crag.area_id == area.id
+            ).first()
+            if not crag:
+                crag = Crag(name=crag_name, area=area)
+                self.session.add(crag)
+                self.session.flush()
+
+            if isinstance(date, str):
+                date = datetime.strptime(date, '%Y-%m-%d').date()
+
+            route = Route(
+                user_id=self.user_id,
+                name=name,
+                grade=grade,
+                discipline=discipline,
+                crag=crag,
+                style=style,
+                date=date,
+                stars=int(stars),
+                shortnote=shortnote,
+                notes=notes,
+                gear=gear,
+                is_project=is_project,
+                is_milestone=is_milestone,
+                ernsthaftigkeit=ernsthaftigkeit,
+                length=length,
+                ascent_time=ascent_time,
+                pitch_number=pitch_number,
+                latitude=latitude,
+                longitude=longitude
+            )
+
+            self.session.add(route)
             self.session.flush()
 
-        crag = self.session.query(Crag).filter(
-            Crag.name == crag_name,
-            Crag.area_id == area.id
-        ).first()
-        if not crag:
-            crag = Crag(name=crag_name, area=area)
-            self.session.add(crag)
-            self.session.flush()
+            if discipline == "Multipitch" and pitches:
+                for i, pitch_data in enumerate(pitches):
+                    pitch = Pitch(
+                        route=route,
+                        pitch_number=i + 1,
+                        grade=pitch_data.get('grade', ''),
+                        led=pitch_data.get('led', True),
+                        style=pitch_data.get('style'),
+                        stars=pitch_data.get('stars', 0),
+                        shortnote=pitch_data.get('shortnote'),
+                        notes=pitch_data.get('notes'),
+                        gear=pitch_data.get('gear'),
+                        ernsthaftigkeit=pitch_data.get('ernsthaftigkeit'),
+                        pitch_length=pitch_data.get('pitch_length'),
+                        pitch_name=pitch_data.get('pitch_name')
+                    )
+                    self.session.add(pitch)
 
-        if isinstance(date, str):
-            date = datetime.strptime(date, '%Y-%m-%d').date()
+            self.session.commit()
+            return route
 
-        route = Route(
-            user_id=self.user_id,
-            name=name,
-            grade=grade,
-            discipline=discipline,
-            crag=crag,
-            style=style,
-            date=date,
-            stars=int(stars),
-            shortnote=shortnote,
-            notes=notes,
-            gear=gear,
-            is_project=is_project,
-            is_milestone=is_milestone,
-            ernsthaftigkeit=ernsthaftigkeit,
-            length=length,
-            ascent_time=ascent_time,
-            pitch_number=pitch_number,
-            latitude=latitude,
-            longitude=longitude
-        )
-
-        self.session.add(route)
-        self.session.flush()
-
-        if discipline == "Multipitch" and pitches:
-            for i, pitch_data in enumerate(pitches):
-                pitch = Pitch(
-                    route=route,
-                    pitch_number=i + 1,
-                    grade=pitch_data.get('grade', ''),
-                    led=pitch_data.get('led', True),
-                    style=pitch_data.get('style'),
-                    stars=pitch_data.get('stars', 0),
-                    shortnote=pitch_data.get('shortnote'),
-                    notes=pitch_data.get('notes'),
-                    gear=pitch_data.get('gear'),
-                    ernsthaftigkeit=pitch_data.get('ernsthaftigkeit'),
-                    pitch_length=pitch_data.get('pitch_length'),
-                    pitch_name=pitch_data.get('pitch_name')
-                )
-                self.session.add(pitch)
-
-        self.session.commit()
-        return route
+        except Exception as e:
+            self.session.rollback()
+            raise
 
     def update_route(self, route_id: int, **kwargs):
         """Update an existing route."""

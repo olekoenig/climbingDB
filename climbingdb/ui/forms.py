@@ -331,6 +331,12 @@ def _handle_form_submission(db, discipline, name, country, area, crag, length, r
         )
 
         st.success(f"✅ Successfully added: {route.name} ({route.grade})")
+        st.cache_resource.clear()
+        st.rerun()
 
+
+    except ValueError as e:
+        st.error(f"Validation error: {e}")
     except Exception as e:
-        st.error(f"Error adding route: {e}")
+        st.error("Failed to add route.")
+        st.error(f"Details: {str(e)}")
