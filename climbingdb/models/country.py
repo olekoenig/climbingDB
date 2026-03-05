@@ -7,9 +7,8 @@ class Country(Base):
     __tablename__ = 'countries'
 
     # Primary key
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
 
-    # Fields
     name = Column(String(100), unique=True, nullable=False, index=True)
     code = Column(String(2), unique=True, nullable=True)  # ISO country code (e.g., "DE", "US")
 

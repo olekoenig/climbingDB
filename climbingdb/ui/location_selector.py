@@ -91,7 +91,7 @@ def _render_route_selector(db, discipline, country_filter, area_filter, crag_fil
     col1, col2 = st.columns(2)
     
     with col1:
-        query = db.session.query(Route.name)
+        query = db.session.query(Route.name).distinct()
         filters = [Route.discipline == discipline]
         
         if crag_filter:

@@ -1,50 +1,49 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, Text, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
 from climbingdb.models.base import Base
-from climbingdb.models.mixins import ClimbableMixin
 
 
-class Route(Base, ClimbableMixin):
+class Route(Base):
     __tablename__ = 'routes'
 
-    # Primary key
-    id = Column(Integer, primary_key=True, autoincrement=True)
-
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-
-    # Global ascent info
+    id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False, index=True)
     crag_id = Column(Integer, ForeignKey('crags.id'), nullable=False, index=True)
     discipline = Column(String(20), nullable=False, index=True)  # 'Sportclimb', 'Boulder', 'Multipitch'
-    date = Column(Date, nullable=True, index=True)
-    stars = Column(Integer, default=0)
-    is_project = Column(Boolean, default=False, index=True)
-    is_milestone = Column(Boolean, default=False, index=True)
 
-    latitude = Column(Float, nullable=True)
-    longitude = Column(Float, nullable=True)
+    consensus_grade = Column(String)  # Average grade
+    consensus_ole_grade = Column(Float)
+    consensus_stars = Column(Float)
 
-    # Multipitch specific
-    ascent_time = Column(Float, nullable=True)  # [hours]
-    pitch_number = Column(Integer, nullable=True)
-    length = Column(Float, nullable=True)
+    first_ascent = Column(Date)
+    first_ascensionist = Column(String)
+
+    length = Column(Float)
+    bolts = Column(Integer)
+    ernsthaftigkeit = Column(String(10))
+
+    latitude = Column(Float)
+    longitude = Column(Float)
+
+    description = Column(Text)  # Non user-dependent route description
+    photo_urls = Column(JSON)  # Wall picture, potentially with first pitch indicated
 
     timestamp = datetime.now(timezone.utc)
     created_at = Column(Date, default=timestamp)
     updated_at = Column(Date, default=timestamp, onupdate=timestamp)
 
     # Relationships
-    user = relationship("User", back_populates="routes")
     crag = relationship("Crag", back_populates="routes")
+    ascents = relationship("Ascent", back_populates="route")
     pitches = relationship("Pitch", back_populates="route")
 
     def __repr__(self):
-        return f"<Route(id={self.id}, name='{self.name}', grade='{self.grade}', discipline='{self.discipline}')>"
+        return f"<Route(id={self.id}, name='{self.name}', grade='{self.consensus_grade}', discipline='{self.discipline}')>"
 
     def __str__(self):
-        return f"{self.name} ({self.grade})"
+        return f"{self.name} ({self.consensus_grade})"
 
     @property
     def area(self):

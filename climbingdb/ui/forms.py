@@ -118,41 +118,44 @@ def render_edit_delete_form(db, routes_df):
         selected_idx = st.selectbox("Select Route to Edit/Delete", range(len(route_options)),
                                     format_func=lambda i: route_options[i])
         # Hack to typecast numpy.int64 (from the pandas dataframe) to python-integer
-        route_id = int(routes_df.iloc[selected_idx]['id'])
-        route = db.get_route_by_id(route_id)
+        ascent_id = int(routes_df.iloc[selected_idx]['id'])
+        ascent = db.get_ascent_by_id(ascent_id)
 
-        if not route:
-            st.error("Route not found!")
+        if not ascent:
+            st.error("Ascent not found!")
             return
 
         tab1, tab2 = st.tabs(["✏️ Edit", "🗑️ Delete"])
 
         with tab1:
-            _render_edit_form(db, route)
+            _render_edit_form(db, ascent)
 
         with tab2:
-            _render_delete_confirmation(db, route)
+            _render_delete_confirmation(db, ascent)
 
 
-def _render_edit_form(db, route):
-    """Render edit form for a route."""
-    with st.form(f"edit_route_form_{route.id}"):
+def _render_edit_form(db, ascent):
+    """Render edit form for an ascent."""
+    route = ascent.route  # Get route from ascent
+
+    with st.form(f"edit_route_form_{ascent.id}"):
         col1, col2 = st.columns(2)
 
         with col1:
-            new_name = st.text_input("Name", value=route.name)
-            new_grade = st.text_input("Grade", value=route.grade)
-            new_style = st.text_input("Style", value=route.style if route.style else "")
-            new_stars = st.selectbox("Stars", [0, 1, 2, 3], index=int(route.stars))
+            # Route name is read-only (universal property)
+            st.text_input("Route Name", value=route.name, disabled=True, help="Route name cannot be changed")
+            new_grade = st.text_input("Grade", value=ascent.grade)  # user's ascent.grade
+            new_style = st.text_input("Style", value=ascent.style if ascent.style else "")
+            new_stars = st.selectbox("Stars", [0, 1, 2, 3], index=int(ascent.stars))
 
         with col2:
-            new_date = st.date_input("Date", value=route.date if route.date else date.today())
-            new_shortnote = st.text_input("Short Note", value=route.shortnote if route.shortnote else "")
+            new_date = st.date_input("Date", value=ascent.date if ascent.date else date.today())
+            new_shortnote = st.text_input("Short Note", value=ascent.shortnote if ascent.shortnote else "")
             col_proj, col_mile = st.columns(2)
             with col_proj:
-                new_is_project = st.checkbox("Project", value=route.is_project)
+                new_is_project = st.checkbox("Project", value=ascent.is_project)
             with col_mile:
-                new_is_milestone = st.checkbox("Milestone", value=route.is_milestone)
+                new_is_milestone = st.checkbox("Milestone", value=ascent.is_milestone)
 
         col_lat, col_lon = st.columns(2)
         with col_lat:
@@ -162,29 +165,28 @@ def _render_edit_form(db, route):
             new_longitude = st.number_input("Longitude", format="%.6f",
                                            value=float(route.longitude) if route.longitude else 0.0)
 
-        new_notes = st.text_area("Notes", value=route.notes if route.notes else "")
-        new_gear = st.text_input("Gear", value=route.gear if route.gear else "")
+        new_notes = st.text_area("Notes", value=ascent.notes if ascent.notes else "")
+        new_gear = st.text_input("Gear", value=ascent.gear if ascent.gear else "")
 
         new_ernsthaftigkeit = None
         if route.discipline == "Multipitch":
             new_ernsthaftigkeit = st.selectbox(
                 "Ernsthaftigkeit",
-                ["", "R", "X"],
-                index=["", "R", "X"].index(route.ernsthaftigkeit) if route.ernsthaftigkeit else 0
+                ["", "R", "X"]
             )
             new_length = st.number_input("Length (m)", min_value=0,
                                         value=int(route.length) if route.length else 0, step=10)
             new_ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0,
-                                             value=float(route.ascent_time) if route.ascent_time else 0.0, step=0.5)
+                                             value=float(ascent.ascent_time) if ascent.ascent_time else 0.0, step=0.5)
 
-            st.info("💡 To edit individual pitches, delete and recreate the route (pitch editing coming soon)")
+            st.info("💡 To edit individual pitch ascents, delete and recreate the route (pitch editing coming soon)")
 
-        update_submitted = st.form_submit_button("Update Route", type="primary")
+        update_submitted = st.form_submit_button("Update Ascent", type="primary")
 
         if update_submitted:
             try:
                 update_params = {
-                    'name': new_name,
+                    'ascent_id': ascent.id,
                     'grade': new_grade,
                     'style': new_style if new_style else None,
                     'stars': new_stars,
@@ -195,30 +197,30 @@ def _render_edit_form(db, route):
                     'notes': new_notes if new_notes else None,
                     'gear': new_gear if new_gear else None,
                     'latitude': new_latitude if new_latitude != 0.0 else None,
-                    'longitude': new_longitude if new_longitude != 0.0 else None
+                    'longitude': new_longitude if new_longitude != 0.0 else None,
+                    'ernsthaftigkeit': new_ernsthaftigkeit if new_ernsthaftigkeit else None,
+                    'length': new_length if new_length > 0 else None,
+                    'ascent_time': new_ascent_time if new_ascent_time > 0 else None
                 }
 
-                if route.discipline == "Multipitch":
-                    update_params['ernsthaftigkeit'] = new_ernsthaftigkeit if new_ernsthaftigkeit else None
-                    update_params['length'] = new_length if new_length > 0 else None
-                    update_params['ascent_time'] = new_ascent_time if new_ascent_time > 0 else None
-
-                db.update_route(route_id=route.id, **update_params)
-                st.success(f"✅ Updated: {new_name}")
+                db.update_ascent(route_id=route.id, **update_params)
+                st.success(f"✅ Updated: {route.name}")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error updating route: {e}")
 
 
-def _render_delete_confirmation(db, route):
+def _render_delete_confirmation(db, ascent):
     """Render delete confirmation."""
+    route = ascent.route
+
     st.markdown(f"### Delete: {route.name}")
-    st.warning(f"⚠️ This will permanently delete **{route.name}** ({route.grade})")
+    st.warning(f"⚠️ This will permanently delete **{route.name}** ({ascent.grade})")
 
-    if route.discipline == "Multipitch" and route.pitches:
-        st.info(f"This will also delete {len(route.pitches)} associated pitches")
+    if route.discipline == "Multipitch" and ascent.pitchascents:
+        st.info(f"This will also delete your {len(ascent.pitchascents)} associated pitch ascents")
 
-    confirm = st.text_input("Type the route name to confirm deletion:", key=f"delete_confirm_{route.id}")
+    confirm = st.text_input("Type the route name to confirm deletion:", key=f"delete_confirm_{ascent.id}")
 
     col1, col2 = st.columns(2)
 
@@ -228,14 +230,14 @@ def _render_delete_confirmation(db, route):
                      disabled=(confirm != route.name),
                      key=f"delete_btn_{route.id}"):
             try:
-                db.delete_route(route.id)
-                st.success(f"✅ Deleted: {route.name}")
+                db.delete_ascent(ascent.id)
+                st.success(f"✅ Deleted your ascent of: {route.name}")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error deleting route: {e}")
 
     with col2:
-        st.markdown("")  # Spacing
+        st.markdown("")
 
 
 def _render_multipitch_fields(num_pitches, grade_options, style_options, shortnote_options):
@@ -306,7 +308,7 @@ def _handle_form_submission(db, discipline, name, country, area, crag, length, r
         return
 
     try:
-        route = db.add_route(
+        ascent = db.add_ascent(
             name=name,
             grade=route_data['grade'],
             discipline=discipline,
@@ -330,7 +332,7 @@ def _handle_form_submission(db, discipline, name, country, area, crag, length, r
             pitch_number=route_data['pitch_number']
         )
 
-        st.success(f"✅ Successfully added: {route.name} ({route.grade})")
+        st.success(f"✅ Successfully added: {ascent.route.name} ({ascent.grade})")
         st.cache_resource.clear()
         st.rerun()
 

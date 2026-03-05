@@ -6,15 +6,11 @@ from .base import Base
 class Area(Base):
     __tablename__ = 'areas'
 
-    # Primary key
-    id = Column(Integer, primary_key=True, autoincrement=True)
-
-    # Fields
+    id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False, index=True)
     country_id = Column(Integer, ForeignKey('countries.id'), nullable=True, index=True)
-    notes = Column(Text, nullable=True)
+    area_notes = Column(Text, nullable=True)
 
-    # Relationships
     country = relationship("Country", back_populates="areas")
     crags = relationship("Crag", back_populates="area", cascade="all, delete-orphan")
 

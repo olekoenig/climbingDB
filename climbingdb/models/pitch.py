@@ -1,21 +1,22 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text
 from sqlalchemy.orm import relationship
 
 from climbingdb.models.base import Base
-from climbingdb.models.mixins import ClimbableMixin
 
 
-class Pitch(Base, ClimbableMixin):  # Inherits same shared fields
+class Pitch(Base):
     __tablename__ = 'pitches'
 
     id = Column(Integer, primary_key=True)
-    route_id = Column(Integer, ForeignKey('routes.id'), nullable=False)
+    route_id = Column(Integer, ForeignKey('routes.id'), index=True)
 
-    # Pitch-specific fields
-    led = Column(Boolean, default=True)
-    pitch_number = Column(Integer, nullable=False)
-    pitch_length = Column(Float, nullable=True)  # [meters]
-    pitch_name = Column(String(200), nullable=True)
+    # Reference info about the pitch
+    pitch_consensus_grade = Column(String)
+    pitch_number = Column(Integer)
+    pitch_name = Column(String)
+    pitch_length = Column(Float)
+    pitch_ernsthaftigkeit = Column(String(10), nullable=True)
+    pitch_description = Column(Text)  # non-user dependent pitch description
 
-    # Relationship
     route = relationship("Route", back_populates="pitches")
+    pitch_ascents = relationship("PitchAscent", back_populates="pitch")

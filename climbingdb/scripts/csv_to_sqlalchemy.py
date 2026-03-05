@@ -12,7 +12,7 @@ from datetime import datetime
 import bcrypt
 
 from climbingdb.models import SessionLocal, init_db, drop_all
-from climbingdb.models import Country, Area, Crag, Route, User, Pitch
+from climbingdb.models import Country, Area, Crag, Route, User, Pitch, Ascent, PitchAscent
 from climbingdb.config import ROUTES_CSV_FILE, BOULDERS_CSV_FILE, MULTIPITCHES_CSV_FILE
 from climbingdb.grade import Grade
 
@@ -112,27 +112,107 @@ def get_or_create_crag(session, crag_name, area):
     return crag
 
 
-def create_pitches_from_data(session, route, pitch_data):
+def get_or_create_route(session, discipline, crag, route_name, grade, ole_grade, length, ernsthaftigkeit):
+    # Check if Route already exists (universal entity)
+    route = session.query(Route).filter(
+        Route.name == route_name,
+        Route.crag_id == crag.id
+    ).first()
+
+    # Create Route if it doesn't exist
+    if not route:
+        route = Route(
+            name=route_name,
+            crag=crag,
+            discipline=discipline,
+            consensus_grade=grade,  # Use CSV grade as consensus
+            consensus_ole_grade=ole_grade,
+            length=length,
+            ernsthaftigkeit=ernsthaftigkeit
+        )
+        session.add(route)
+        session.flush()
+        print(f"  Created route: {route_name}")
+
+    return route
+
+
+def create_pitches_from_data(session, route, ascent, pitch_data):
     """Create Pitch objects for a multipitch route."""
     if not pitch_data:
         return
 
     for i, pitch_info in enumerate(pitch_data):
-        pitch = Pitch(
-            route=route,
-            pitch_number=i + 1,
+        # Check if Pitch already exists for this route
+        pitch = session.query(Pitch).filter(
+            Pitch.route_id == route.id,
+            Pitch.pitch_number == i + 1
+        ).first()
+
+        if not pitch:
+            pitch = Pitch(
+                route=route,
+                pitch_number=i + 1,
+                pitch_consensus_grade=pitch_info['grade']
+            )
+            session.add(pitch)
+
+        # Create user's PitchAscent
+        pitch_ascent = PitchAscent(
+            ascent=ascent,
+            pitch=pitch,
             grade=pitch_info['grade'],
-            led=pitch_info['led'],
-            style=None,
-            stars=0,
-            shortnote=None,
-            notes=None,
-            gear=None,
-            ernsthaftigkeit=None,
-            pitch_length=None,
-            pitch_name=None
+            led=pitch_info['led']
         )
-        session.add(pitch)
+        session.add(pitch_ascent)
+        session.flush()
+
+
+def get_route_fields(row, discipline):
+    routename = row['name']
+    crag = row['crag']
+    grade = row['grade']
+    ole_grade = Grade(grade).conv_grade()
+
+    # Fields that are only in multipitch table
+    length = float(getattr(row, 'length', 0))
+    ernsthaftigkeit = getattr(row, 'ernsthaftigkeit', None)
+
+    # Catch cases where boulders have a route grade (e.g., 5.9 for a tall boulder)
+    if discipline == "Boulder":
+        grade_scale = Grade(grade).get_scale()
+        if grade_scale in ['YDS', 'UIAA', 'French', 'Elbsandstein']:
+            ole_grade = Grade("VB").conv_grade()
+
+    return routename, crag, grade, ole_grade, length, ernsthaftigkeit
+
+
+def get_ascent_fields(row):
+    stars = int(row['stars']) if row['stars'] != '' else 0
+    style = row['style'] if row['style'] else None
+    shortnote = row['shortnote'] if row['shortnote'] else None
+    notes = row['notes'] if row['notes'] else None
+    is_project = row['project'] == 'X' if row['project'] else False
+    is_milestone = row['milestone'] == 'X' if 'milestone' in row and row['milestone'] else False
+
+    ascent_date = None
+    if pd.notna(row['date']):
+        if isinstance(row['date'], str):
+            try:
+                ascent_date = datetime.strptime(row['date'], '%Y-%m-%d').date()
+            except:
+                pass
+        else:
+            ascent_date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
+
+    return stars, style, shortnote, notes, is_project, is_milestone, ascent_date
+
+
+def get_pitch_fields(row):
+    pitches = row['pitches'] if row['pitches'] else None
+    pitch_data = parse_multipitch_pitches(pitches)
+    pitch_number = len(pitch_data) if pitch_data else 1
+    return pitch_data, pitch_number
 
 
 def import_routes_from_csv(csv_file, discipline, session, user_id):
@@ -150,6 +230,7 @@ def import_routes_from_csv(csv_file, discipline, session, user_id):
 
     print(f"  Found {len(df)} routes in CSV")
 
+    # Hack to parse date formats properly, not sure if this is needed
     df['date'] = pd.to_datetime(df['date'], format='mixed').dt.strftime('%Y-%m-%d')
 
     imported_count = 0
@@ -159,73 +240,32 @@ def import_routes_from_csv(csv_file, discipline, session, user_id):
         try:
             country = get_or_create_country(session, row['country'])
             area = get_or_create_area(session, row['area'], country)
-            crag = get_or_create_crag(session, row['crag'], area)
 
-            is_project = row['project'] == 'X' if row['project'] else False
-            is_milestone = row['milestone'] == 'X' if 'milestone' in row and row['milestone'] else False
+            routename, crag_name, grade, ole_grade, length, ernsthaftigkeit = get_route_fields(row, discipline)
 
-            route_date = None
-            if pd.notna(row['date']):
-                if isinstance(row['date'], str):
-                    try:
-                        route_date = datetime.strptime(row['date'], '%Y-%m-%d').date()
-                    except:
-                        pass
-                else:
-                    route_date = row['date'].date() if hasattr(row['date'], 'date') else row['date']
+            crag = get_or_create_crag(session, crag_name, area)
+            route = get_or_create_route(session, discipline, crag, routename, grade, ole_grade, length, ernsthaftigkeit)
+            stars, style, shortnote, notes, is_project, is_milestone, ascent_date = get_ascent_fields(row)
 
-            stars = int(row['stars']) if row['stars'] != '' else 0
-
-            style = row['style'] if row['style'] else None
-            shortnote = row['shortnote'] if row['shortnote'] else None
-            notes = row['notes'] if row['notes'] else None
-            gear = row['gear'] if 'gear' in row and row['gear'] else None
-
-            grade_str = row['grade']
-            if discipline == "Boulder":
-                grade_scale = Grade(grade_str).get_scale()
-                if grade_scale in ['YDS', 'UIAA', 'French', 'Elbsandstein']:
-                    grade_str = "VB"
-
-            pitch_data = None
-            ernsthaftigkeit = None
-            length = None
-            pitch_number = 1
-
-            if discipline == "Multipitch":
-                pitches_str = row['pitches'] if row['pitches'] else None
-                pitch_data = parse_multipitch_pitches(pitches_str)
-                pitch_number = len(pitch_data)
-                ernsthaftigkeit = row['ernsthaftigkeit'] if row['ernsthaftigkeit'] else None
-                length = float(row['length']) if row['length'] else None
-
-            route = Route(
+            ascent = Ascent(
                 user_id=user_id,
-                name=row['name'],
-                grade=grade_str,
-                crag=crag,
-                discipline=discipline,
+                route=route,
+                date=ascent_date,
+                grade=grade,
                 style=style,
-                date=route_date,
                 stars=stars,
                 shortnote=shortnote,
                 notes=notes,
-                gear=gear,
                 is_project=is_project,
-                is_milestone=is_milestone,
-                ernsthaftigkeit=ernsthaftigkeit,
-                ascent_time=None,
-                pitch_number=pitch_number,
-                length=length,
-                latitude=None,
-                longitude=None
+                is_milestone=is_milestone
             )
 
-            session.add(route)
+            session.add(ascent)
             session.flush()
 
-            if discipline == "Multipitch" and pitch_data:
-                create_pitches_from_data(session, route, pitch_data)
+            if discipline == "Multipitch":
+                pitch_data, pitch_number = get_pitch_fields(row)
+                create_pitches_from_data(session, route, ascent, pitch_data)
 
             imported_count += 1
 
@@ -287,8 +327,8 @@ def import_all_csv_files(recreate_db=True):
         init_db()
         print("\n✓ Tables created")
 
-        print("\nCreating indexes...")
-        _create_performance_indexes()
+        #print("\nCreating indexes...")
+        #_create_performance_indexes()
     else:
         init_db()
 
@@ -310,10 +350,6 @@ def import_all_csv_files(recreate_db=True):
             print("❌ Passwords don't match!")
             return
 
-        if len(default_password) < 8:
-            print("❌ Password must be at least 8 characters!")
-            return
-
         print(f"\nCreating user: {default_username}")
         default_user = _create_default_user(session, default_username, default_email, default_password)
         print(f"✓ User created with ID: {default_user.id}")
@@ -330,13 +366,15 @@ def import_all_csv_files(recreate_db=True):
         print(f"Countries:  {session.query(Country).count()}")
         print(f"Areas:      {session.query(Area).count()}")
         print(f"Crags:      {session.query(Crag).count()}")
-        print(f"Routes:     {session.query(Route).count()}")
-        print(f"  - Sport:  {session.query(Route).filter(Route.discipline == 'Sportclimb').count()}")
-        print(f"  - Boulder: {session.query(Route).filter(Route.discipline == 'Boulder').count()}")
-        print(f"  - Multi:   {session.query(Route).filter(Route.discipline == 'Multipitch').count()}")
+        print(f"Routes:     {session.query(Route).count()}")  # Universal routes
+        print(f"Ascents:    {session.query(Ascent).count()}")  # User ascents
+        print(f"  - Sport:  {session.query(Ascent).join(Ascent.route).filter(Route.discipline == 'Sportclimb').count()}")
+        print(f"  - Boulder: {session.query(Ascent).join(Ascent.route).filter(Route.discipline == 'Boulder').count()}")
+        print(f"  - Multi:   {session.query(Ascent).join(Ascent.route).filter(Route.discipline == 'Multipitch').count()}")
         print(f"Pitches:    {session.query(Pitch).count()}")
-        print(f"Projects:   {session.query(Route).filter(Route.is_project == True).count()}")
-        print(f"Milestones: {session.query(Route).filter(Route.is_milestone == True).count()}")
+        print(f"PitchAscents: {session.query(PitchAscent).count()}")
+        print(f"Projects:   {session.query(Ascent).filter(Ascent.is_project == True).count()}")
+        print(f"Milestones: {session.query(Ascent).filter(Ascent.is_milestone == True).count()}")
 
         print(f"\n✓ All routes assigned to user: {default_user.username}")
         print("✅ Import completed successfully!")

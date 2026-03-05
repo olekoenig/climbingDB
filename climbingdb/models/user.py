@@ -1,29 +1,39 @@
-"""
-User model for authentication and route ownership.
-"""
-
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
-from .base import Base
+from datetime import datetime, timezone
+
+from climbingdb.models.base import Base
 
 
 class User(Base):
     __tablename__ = 'users'
 
-    # Primary key
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
 
-    # User credentials
+    # Mandatory user credentials
     username = Column(String(50), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)  # Never store plain passwords
-    email = Column(String(100), unique=True, nullable=True)
+    password_hash = Column(String(255), nullable=False)
+
+    # Voluntary information
+    name = Column(String(50))
+    email = Column(String(100), unique=True)
+    bio = Column(Text)
+    profile_picture_url = Column(String)
+    location = Column(String)
+
+    # Privacy settings
+    profile_visibility = Column(String, default='private')  # 'private', 'friends', 'public'
+    show_email = Column(Boolean, default=False)
+    show_location = Column(Boolean, default=True)
+    show_statistics = Column(Boolean, default=True)
+    show_notes = Column(Boolean, default=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    last_login = Column(DateTime)
 
     # Relationships
-    routes = relationship("Route", back_populates="user", cascade="all, delete-orphan")
+    ascents = relationship("Ascent", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}')>"
