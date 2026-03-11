@@ -5,7 +5,7 @@ Main form rendering for adding/editing routes.
 import streamlit as st
 from datetime import date
 
-from .location_selector import render_location_selector
+from .location_selector import render_location_selector, get_existing_route_data
 from .form_helpers import (
     get_grade_system_options,
     get_style_options,
@@ -24,35 +24,33 @@ def render_add_route_form(db, discipline):
 
         country, area, crag, name = render_location_selector(db, discipline)
 
-        length = None
-        num_pitches = 3
-        if discipline == "Multipitch":
-            col_len, col_pitches = st.columns(2)
-            with col_len:
-                length = st.number_input("Total Length (m)", min_value=0, step=10)
-            with col_pitches:
-                num_pitches = st.number_input("Number of Pitches", min_value=1, value=3, step=1)
+        # Fetch existing route data for auto-population (could be None)
+        existing_route = get_existing_route_data(db, name, crag, discipline)
 
         with st.form("add_route_form", clear_on_submit=True):
-            route_data = _render_route_fields(
-                discipline, grade_system, num_pitches if discipline == "Multipitch" else None
-            )
+            route_data = _render_route_fields(discipline, grade_system, existing_route=existing_route)
 
-            submitted = st.form_submit_button(f"Add {discipline}", type="primary", use_container_width=True)
+            submitted = st.form_submit_button(f"Add {discipline}", type="primary", width='stretch')
 
             if submitted:
-                _handle_form_submission(db, discipline, name, country, area, crag, length, route_data)
+                _handle_form_submission(db, discipline, name, country, area, crag, route_data)
 
 
-def _render_route_fields(discipline, grade_system, num_pitches=None):
+def _render_route_fields(discipline, grade_system, existing_route=None):
     """Render form fields for route details."""
     grade_options = get_grade_options(grade_system)
+
+    # Auto-populate grade from existing route
+    default_grade_idx = 0
+    if existing_route and existing_route.consensus_grade in grade_options:
+        default_grade_idx = grade_options.index(existing_route.consensus_grade)
+
     style_options = get_style_options(discipline)
     shortnote_options = get_shortnote_options(discipline)
 
     col1, col2 = st.columns(2)
     with col1:
-        grade = st.selectbox("Grade", grade_options)
+        grade = st.selectbox("Grade", grade_options, index=default_grade_idx)
         style = st.selectbox("Style", [""] + style_options + ["FA"]) if discipline != "Projects" else None
         stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], index=0)
 
@@ -66,22 +64,25 @@ def _render_route_fields(discipline, grade_system, num_pitches=None):
             is_milestone = st.checkbox("Milestone")
 
     col_lat, col_lon = st.columns(2)
+    default_lat = float(existing_route.latitude) if existing_route and existing_route.latitude else 0.0
+    default_lon = float(existing_route.longitude) if existing_route and existing_route.longitude else 0.0
     with col_lat:
-        latitude = st.number_input("Latitude", format="%.6f", value=0.0, help="GPS coordinate")
+        latitude = st.number_input("Latitude", format="%.6f", value=default_lat, help="GPS coordinate")
     with col_lon:
-        longitude = st.number_input("Longitude", format="%.6f", value=0.0, help="GPS coordinate")
+        longitude = st.number_input("Longitude", format="%.6f", value=default_lon, help="GPS coordinate")
 
+    # Reset coordinates such that not all routes where this was unpopulated are actually at GPS=0/0
     latitude = latitude if latitude != 0.0 else None
     longitude = longitude if longitude != 0.0 else None
 
     notes = st.text_area("Notes", placeholder="Detailed description...")
     gear = st.text_input("Gear", placeholder="e.g., 10 quickdraws, cams #0.5-3") if discipline != "Boulder" else None
 
-    ernsthaftigkeit = None
-    pitches = None
-    ascent_time = None
+    ernsthaftigkeit = pitches = length = ascent_time = None
     if discipline == "Multipitch":
-        ernsthaftigkeit, ascent_time, pitches = _render_multipitch_fields(num_pitches, grade_options, style_options, shortnote_options)
+        ernsthaftigkeit, ascent_time, length, pitches = _render_multipitch_fields(
+            grade_options, style_options, shortnote_options, existing_route=existing_route
+        )
 
     return {
         'grade': grade,
@@ -97,8 +98,8 @@ def _render_route_fields(discipline, grade_system, num_pitches=None):
         'longitude': longitude,
         'ernsthaftigkeit': ernsthaftigkeit,
         'pitches': pitches,
-        'ascent_time': ascent_time,
-        'pitch_number': num_pitches
+        'length': length,
+        'ascent_time': ascent_time
     }
 
 
@@ -169,6 +170,8 @@ def _render_edit_form(db, ascent):
         new_gear = st.text_input("Gear", value=ascent.gear if ascent.gear else "")
 
         new_ernsthaftigkeit = None
+        new_length = None
+        new_ascent_time = None
         if route.discipline == "Multipitch":
             new_ernsthaftigkeit = st.selectbox(
                 "Ernsthaftigkeit",
@@ -198,9 +201,9 @@ def _render_edit_form(db, ascent):
                     'gear': new_gear if new_gear else None,
                     'latitude': new_latitude if new_latitude != 0.0 else None,
                     'longitude': new_longitude if new_longitude != 0.0 else None,
-                    'ernsthaftigkeit': new_ernsthaftigkeit if new_ernsthaftigkeit else None,
-                    'length': new_length if new_length > 0 else None,
-                    'ascent_time': new_ascent_time if new_ascent_time > 0 else None
+                    'ernsthaftigkeit': new_ernsthaftigkeit,
+                    'length': new_length,
+                    'ascent_time': new_ascent_time
                 }
 
                 db.update_ascent(route_id=route.id, **update_params)
@@ -240,8 +243,16 @@ def _render_delete_confirmation(db, ascent):
         st.markdown("")
 
 
-def _render_multipitch_fields(num_pitches, grade_options, style_options, shortnote_options):
+def _render_multipitch_fields(grade_options, style_options, shortnote_options, existing_route=None):
     """Render multipitch fields with full pitch details."""
+    col_len, col_pitches = st.columns(2)
+    with col_len:
+        default_length = int(existing_route.length) if existing_route and existing_route.length else 0
+        length = st.number_input("Total Length (m)", min_value=0, step=10, value=default_length)
+    with col_pitches:
+        default_pitches = len(existing_route.pitches) if existing_route and existing_route.pitches else 3
+        num_pitches = st.number_input("Number of Pitches", min_value=1, step=1, value=default_pitches)
+
     col_ernst, col_time = st.columns(2)
     with col_ernst:
         ernsthaftigkeit = st.selectbox("Ernsthaftigkeit (overall)", ["", "R", "X"])
@@ -255,11 +266,23 @@ def _render_multipitch_fields(num_pitches, grade_options, style_options, shortno
         for i in range(int(num_pitches)):
             st.markdown(f"### Pitch {i+1}")
 
-            col1, col2, col3 = st.columns(3)
+            # Auto-populate from existing pitch
+            default_pitch_grade_idx = 0
+            default_pitch_length = 0
+            default_pitch_name = ""
+            if existing_route and existing_route.pitches:
+                pitch = existing_route.pitches[i]
+                if pitch.pitch_consensus_grade in grade_options:
+                    default_pitch_grade_idx = grade_options.index(pitch.pitch_consensus_grade)
+                default_pitch_length = pitch.pitch_length
+                default_pitch_name = pitch.pitch_name
 
+            col1, col2, col3 = st.columns(3)
             with col1:
-                pitch_grade = st.selectbox("Grade", grade_options, key=f"pitch_grade_{i}")
-                pitch_name = st.text_input("Name", key=f"pitch_name_{i}", placeholder="e.g., Crux pitch")
+                pitch_grade = st.selectbox("Grade", grade_options,
+                                           key=f"pitch_grade_{i}", index=default_pitch_grade_idx)
+                pitch_name = st.text_input("Name", key=f"pitch_name_{i}", placeholder="e.g., Crux pitch",
+                                           value=default_pitch_name)
 
             with col2:
                 pitch_style = st.selectbox("Style", [""] + style_options, key=f"pitch_style_{i}")
@@ -267,7 +290,8 @@ def _render_multipitch_fields(num_pitches, grade_options, style_options, shortno
 
             with col3:
                 pitch_stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], key=f"pitch_stars_{i}")
-                pitch_length = st.number_input("Length (m)", min_value=0, key=f"pitch_length_{i}")
+                pitch_length = st.number_input("Length (m)", min_value=0, key=f"pitch_length_{i}",
+                                               value=default_pitch_length)
 
             col4, col5 = st.columns(2)
             with col4:
@@ -281,22 +305,22 @@ def _render_multipitch_fields(num_pitches, grade_options, style_options, shortno
                                       placeholder="Specific gear for this pitch")
 
             pitches_list.append({
-                "grade": pitch_grade if pitch_grade else None,
+                "grade": pitch_grade,
                 "led": pitch_led,
-                "style": pitch_style if pitch_style else None,
+                "style": pitch_style,
                 "stars": pitch_stars,
-                "pitch_length": pitch_length if pitch_length > 0 else None,
-                "pitch_name": pitch_name if pitch_name else None,
-                "ernsthaftigkeit": pitch_ernst if pitch_ernst else None,
-                "shortnote": ', '.join(pitch_shortnote) if pitch_shortnote else None,
-                "notes": pitch_notes if pitch_notes else None,
-                "gear": pitch_gear if pitch_gear else None
+                "pitch_length": pitch_length,
+                "pitch_name": pitch_name,
+                "ernsthaftigkeit": pitch_ernst,
+                "shortnote": ', '.join(pitch_shortnote),
+                "notes": pitch_notes,
+                "gear": pitch_gear
             })
 
             if i < int(num_pitches) - 1:
                 st.markdown("---")
 
-    return ernsthaftigkeit, ascent_time, pitches_list
+    return ernsthaftigkeit, ascent_time, length, pitches_list
 
 
 def _handle_form_submission(db, discipline, name, country, area, crag, length, route_data):

@@ -8,12 +8,6 @@ from climbingdb.models import Country, Area, Crag, Route
 
 
 def render_location_selector(db, discipline):
-    """
-    Render cascading location selector (Country → Area → Crag → Route).
-    
-    Returns:
-        tuple: (country, area, crag, name)
-    """
     country = _render_country_selector(db, discipline)
     area = _render_area_selector(db, discipline, country)
     crag = _render_crag_selector(db, discipline, country, area)
@@ -111,3 +105,17 @@ def _render_route_selector(db, discipline, country_filter, area_filter, crag_fil
         route_new = st.text_input("Add new route", key="route_new_input")
     
     return route_new if route_new else route_select
+
+
+def get_existing_route_data(db, route_name, crag_name, discipline):
+    """Fetch existing route data for auto-population."""
+    if not route_name or not crag_name:
+        return None
+
+    route = db.session.query(Route).join(Route.crag).filter(
+        Route.name == route_name,
+        Crag.name == crag_name,
+        Route.discipline == discipline
+    ).first()
+
+    return route
