@@ -268,6 +268,23 @@ class ClimbingService:
         self.session.commit()
         return True
 
+    def update_pitch_ascents(self, pitch_updates: list) -> None:
+        try:
+            for update in pitch_updates:
+                pitch_ascent_id = update.pop('pitch_ascent_id')
+                pa = self.session.query(PitchAscent).filter(
+                    PitchAscent.id == pitch_ascent_id
+                ).first()
+
+                if pa:
+                    for field, value in update.items():
+                        setattr(pa, field, value)
+
+            self.session.commit()
+
+        except Exception as e:
+            self.session.rollback()
+            raise
 
     def get_ascent_by_id(self, ascent_id: int):
         """Get ascent by ID (user-filtered)."""

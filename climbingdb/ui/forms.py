@@ -13,19 +13,24 @@ from .form_helpers import (
     validate_route_data,
     get_shortnote_options
 )
+from climbingdb.grade import Grade
 
 
 def render_add_route_form(db, discipline):
-    """Render form to add a new route."""
-
     with st.expander(f"➕ Add New {discipline}", expanded=False):
-        grade_systems = get_grade_system_options(discipline)
-        grade_system = st.selectbox("Grading System", grade_systems, key="add_grade_system")
-
         country, area, crag, name = render_location_selector(db, discipline)
 
         # Fetch existing route data for auto-population (could be None)
         existing_route = get_existing_route_data(db, name, crag, discipline)
+
+        grade_systems = get_grade_system_options(discipline)
+        if existing_route:
+            default_grade_system = Grade(existing_route.consensus_grade).get_scale()
+            if st.session_state.get('last_selected_route') != existing_route.name:
+                st.session_state['add_grade_system'] = default_grade_system
+                st.session_state['last_selected_route'] = existing_route.name
+
+        grade_system = st.selectbox("Grading System", grade_systems, key="add_grade_system")
 
         with st.form("add_route_form", clear_on_submit=True):
             route_data = _render_route_fields(discipline, grade_system, existing_route=existing_route)
@@ -51,7 +56,7 @@ def _render_route_fields(discipline, grade_system, existing_route=None):
     col1, col2 = st.columns(2)
     with col1:
         grade = st.selectbox("Grade", grade_options, index=default_grade_idx)
-        style = st.selectbox("Style", [""] + style_options + ["FA"]) if discipline != "Projects" else None
+        style = st.selectbox("Style", [""] + style_options) if discipline != "Projects" else None
         stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], index=0)
 
     with col2:
@@ -104,8 +109,6 @@ def _render_route_fields(discipline, grade_system, existing_route=None):
 
 
 def render_edit_delete_form(db, routes_df):
-    """Render edit/delete functionality."""
-
     if len(routes_df) == 0:
         st.info("No routes to edit. Adjust filters or add a new route.")
         return
@@ -137,15 +140,14 @@ def render_edit_delete_form(db, routes_df):
 
 def _render_edit_form(db, ascent):
     """Render edit form for an ascent."""
-    route = ascent.route  # Get route from ascent
+    route = ascent.route
 
     with st.form(f"edit_route_form_{ascent.id}"):
         col1, col2 = st.columns(2)
 
         with col1:
-            # Route name is read-only (universal property)
-            st.text_input("Route Name", value=route.name, disabled=True, help="Route name cannot be changed")
-            new_grade = st.text_input("Grade", value=ascent.grade)  # user's ascent.grade
+            st.text_input("Route Name", value=route.name, disabled=True)
+            new_grade = st.text_input("Grade", value=ascent.grade)
             new_style = st.text_input("Style", value=ascent.style if ascent.style else "")
             new_stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], index=int(ascent.stars))
 
@@ -161,10 +163,10 @@ def _render_edit_form(db, ascent):
         col_lat, col_lon = st.columns(2)
         with col_lat:
             new_latitude = st.number_input("Latitude", format="%.6f",
-                                          value=float(route.latitude) if route.latitude else 0.0)
+                                           value=float(route.latitude) if route.latitude else 0.0)
         with col_lon:
             new_longitude = st.number_input("Longitude", format="%.6f",
-                                           value=float(route.longitude) if route.longitude else 0.0)
+                                            value=float(route.longitude) if route.longitude else 0.0)
 
         new_notes = st.text_area("Notes", value=ascent.notes if ascent.notes else "")
         new_gear = st.text_input("Gear", value=ascent.gear if ascent.gear else "")
@@ -172,45 +174,113 @@ def _render_edit_form(db, ascent):
         new_ernsthaftigkeit = None
         new_length = None
         new_ascent_time = None
-        if route.discipline == "Multipitch":
-            new_ernsthaftigkeit = st.selectbox(
-                "Ernsthaftigkeit",
-                ["", "R", "X"]
-            )
-            new_length = st.number_input("Length (m)", min_value=0,
-                                        value=int(route.length) if route.length else 0, step=10)
-            new_ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0,
-                                             value=float(ascent.ascent_time) if ascent.ascent_time else 0.0, step=0.5)
+        pitch_updates = []
 
-            st.info("💡 To edit individual pitch ascents, delete and recreate the route (pitch editing coming soon)")
+        if route.discipline == "Multipitch":
+            col_ernst, col_time = st.columns(2)
+            with col_ernst:
+                ernst_options = ["", "R", "X"]
+                ernst_idx = ernst_options.index(
+                    route.ernsthaftigkeit) if route.ernsthaftigkeit in ernst_options else 0
+                new_ernsthaftigkeit = st.selectbox("Ernsthaftigkeit", ernst_options, index=ernst_idx)
+            with col_time:
+                new_ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0,
+                                                  value=float(ascent.ascent_time) if ascent.ascent_time else 0.0,
+                                                  step=0.5)
+            new_length = st.number_input("Length (m)", min_value=0,
+                                         value=int(route.length) if route.length else 0, step=10)
+
+            # Pitch editing
+            if ascent.pitch_ascents:
+                st.markdown("### ⛰️ Pitch Ascents")
+
+                sorted_pitch_ascents = sorted(ascent.pitch_ascents, key=lambda pa: pa.pitch.pitch_number)
+
+                for pa in sorted_pitch_ascents:
+                    st.markdown(f"**Pitch {pa.pitch.pitch_number}**" +
+                                (f" - {pa.pitch.pitch_name}" if pa.pitch.pitch_name else ""))
+
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        new_pitch_grade = st.text_input(
+                            "Grade",
+                            value=pa.grade if pa.grade else "",
+                            key=f"edit_pitch_grade_{pa.id}"
+                        )
+                        new_pitch_style = st.text_input(
+                            "Style",
+                            value=pa.style if pa.style else "",
+                            key=f"edit_pitch_style_{pa.id}"
+                        )
+                    with col2:
+                        new_pitch_led = st.checkbox(
+                            "Led",
+                            value=pa.led if pa.led is not None else True,
+                            key=f"edit_pitch_led_{pa.id}"
+                        )
+                        new_pitch_stars = st.selectbox(
+                            "Stars",
+                            [0, 1, 2, 3],
+                            index=int(pa.stars) if pa.stars else 0,
+                            key=f"edit_pitch_stars_{pa.id}"
+                        )
+                    with col3:
+                        new_pitch_shortnote = st.text_input(
+                            "Short Note",
+                            value=pa.shortnote if pa.shortnote else "",
+                            key=f"edit_pitch_shortnote_{pa.id}"
+                        )
+                        new_pitch_notes = st.text_area(
+                            "Notes",
+                            value=pa.notes if pa.notes else "",
+                            key=f"edit_pitch_notes_{pa.id}"
+                        )
+
+                    pitch_updates.append({
+                        'pitch_ascent_id': pa.id,
+                        'grade': new_pitch_grade,
+                        'led': new_pitch_led,
+                        'style': new_pitch_style if new_pitch_style else None,
+                        'stars': new_pitch_stars,
+                        'shortnote': new_pitch_shortnote if new_pitch_shortnote else None,
+                        'notes': new_pitch_notes if new_pitch_notes else None
+                    })
+
+                    if pa != sorted_pitch_ascents[-1]:
+                        st.markdown("---")
 
         update_submitted = st.form_submit_button("Update Ascent", type="primary")
 
         if update_submitted:
             try:
-                update_params = {
-                    'ascent_id': ascent.id,
-                    'grade': new_grade,
-                    'style': new_style if new_style else None,
-                    'stars': new_stars,
-                    'date': new_date,
-                    'is_project': new_is_project,
-                    'is_milestone': new_is_milestone,
-                    'shortnote': new_shortnote if new_shortnote else None,
-                    'notes': new_notes if new_notes else None,
-                    'gear': new_gear if new_gear else None,
-                    'latitude': new_latitude if new_latitude != 0.0 else None,
-                    'longitude': new_longitude if new_longitude != 0.0 else None,
-                    'ernsthaftigkeit': new_ernsthaftigkeit,
-                    'length': new_length,
-                    'ascent_time': new_ascent_time
-                }
+                db.update_ascent(
+                    ascent_id=ascent.id,
+                    grade=new_grade,
+                    style=new_style if new_style else None,
+                    stars=new_stars,
+                    date=new_date,
+                    is_project=new_is_project,
+                    is_milestone=new_is_milestone,
+                    shortnote=new_shortnote if new_shortnote else None,
+                    notes=new_notes if new_notes else None,
+                    gear=new_gear if new_gear else None,
+                    latitude=new_latitude if new_latitude != 0.0 else None,
+                    longitude=new_longitude if new_longitude != 0.0 else None,
+                    ernsthaftigkeit=new_ernsthaftigkeit if new_ernsthaftigkeit else None,
+                    length=new_length if new_length and new_length > 0 else None,
+                    ascent_time=new_ascent_time if new_ascent_time and new_ascent_time > 0 else None
+                )
 
-                db.update_ascent(route_id=route.id, **update_params)
+                # Update pitch ascents
+                if pitch_updates:
+                    db.update_pitch_ascents(pitch_updates)
+
                 st.success(f"✅ Updated: {route.name}")
+                st.session_state.show_edit_form = False
                 st.rerun()
+
             except Exception as e:
-                st.error(f"Error updating route: {e}")
+                st.error(f"Error updating: {e}")
 
 
 def _render_delete_confirmation(db, ascent):
@@ -297,7 +367,7 @@ def _render_multipitch_fields(grade_options, style_options, shortnote_options, e
             with col4:
                 pitch_ernst = st.selectbox("Ernsthaftigkeit", ["", "R", "X"], key=f"pitch_ernst_{i}")
             with col5:
-                pitch_shortnote = st.multiselect("Note", shortnote_options, key=f"pitch_shortnote_{i}")
+                pitch_shortnote = st.multiselect("Short note", shortnote_options, key=f"pitch_shortnote_{i}")
 
             pitch_notes = st.text_area("Pitch Notes", key=f"pitch_notes_{i}",
                                       placeholder="Detailed notes for this pitch")
@@ -323,7 +393,7 @@ def _render_multipitch_fields(grade_options, style_options, shortnote_options, e
     return ernsthaftigkeit, ascent_time, length, pitches_list
 
 
-def _handle_form_submission(db, discipline, name, country, area, crag, length, route_data):
+def _handle_form_submission(db, discipline, name, country, area, crag, route_data):
     """Handle form submission and route creation."""
     errors = validate_route_data(name, route_data['grade'], area, crag, country)
     if errors:
@@ -350,7 +420,7 @@ def _handle_form_submission(db, discipline, name, country, area, crag, length, r
             is_project=route_data['is_project'],
             is_milestone=route_data['is_milestone'],
             ernsthaftigkeit=route_data['ernsthaftigkeit'],
-            length=length,
+            length=route_data['length'],
             pitches=route_data['pitches'],
             ascent_time=route_data['ascent_time']
         )

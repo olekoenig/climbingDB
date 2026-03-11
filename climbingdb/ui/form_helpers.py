@@ -20,7 +20,7 @@ def get_style_options(discipline):
         return ["o.s.", "F", "2. Go", "toprope"]
     else:  # Multipitch
         return ["o.s.", "F", "AF", "followed"]
-
+    
 
 def get_grade_options(grade_system):
     """Get sorted grade options for a grading system."""
@@ -30,7 +30,7 @@ def get_grade_options(grade_system):
 
 def get_shortnote_options(discipline):
     """Get short note options for discipline."""
-    shortnote = ["", "soft", "hard"]
+    shortnote = ["", "soft", "hard", "FA"]
     if discipline == "Boulder":
         shortnote.append("trav")
     else:
