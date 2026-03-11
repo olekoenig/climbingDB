@@ -54,7 +54,7 @@ def _render_route_fields(discipline, grade_system, num_pitches=None):
     with col1:
         grade = st.selectbox("Grade", grade_options)
         style = st.selectbox("Style", [""] + style_options + ["FA"]) if discipline != "Projects" else None
-        stars = st.selectbox("Stars", [0, 1, 2, 3], index=0)
+        stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], index=0)
 
     with col2:
         shortnote = st.multiselect("Short Note", shortnote_options)
@@ -146,7 +146,7 @@ def _render_edit_form(db, ascent):
             st.text_input("Route Name", value=route.name, disabled=True, help="Route name cannot be changed")
             new_grade = st.text_input("Grade", value=ascent.grade)  # user's ascent.grade
             new_style = st.text_input("Style", value=ascent.style if ascent.style else "")
-            new_stars = st.selectbox("Stars", [0, 1, 2, 3], index=int(ascent.stars))
+            new_stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], index=int(ascent.stars))
 
         with col2:
             new_date = st.date_input("Date", value=ascent.date if ascent.date else date.today())
@@ -217,8 +217,8 @@ def _render_delete_confirmation(db, ascent):
     st.markdown(f"### Delete: {route.name}")
     st.warning(f"⚠️ This will permanently delete **{route.name}** ({ascent.grade})")
 
-    if route.discipline == "Multipitch" and ascent.pitchascents:
-        st.info(f"This will also delete your {len(ascent.pitchascents)} associated pitch ascents")
+    if route.discipline == "Multipitch" and ascent.pitch_ascents:
+        st.info(f"This will also delete your {len(ascent.pitch_ascents)} associated pitch ascents")
 
     confirm = st.text_input("Type the route name to confirm deletion:", key=f"delete_confirm_{ascent.id}")
 
@@ -266,7 +266,7 @@ def _render_multipitch_fields(num_pitches, grade_options, style_options, shortno
                 pitch_led = st.checkbox("Led (uncheck if followed)", value=True, key=f"pitch_led_{i}")
 
             with col3:
-                pitch_stars = st.selectbox("Stars", [0, 1, 2, 3], key=f"pitch_stars_{i}")
+                pitch_stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], key=f"pitch_stars_{i}")
                 pitch_length = st.number_input("Length (m)", min_value=0, key=f"pitch_length_{i}")
 
             col4, col5 = st.columns(2)
@@ -328,14 +328,12 @@ def _handle_form_submission(db, discipline, name, country, area, crag, length, r
             ernsthaftigkeit=route_data['ernsthaftigkeit'],
             length=length,
             pitches=route_data['pitches'],
-            ascent_time=route_data['ascent_time'],
-            pitch_number=route_data['pitch_number']
+            ascent_time=route_data['ascent_time']
         )
 
         st.success(f"✅ Successfully added: {ascent.route.name} ({ascent.grade})")
         st.cache_resource.clear()
         st.rerun()
-
 
     except ValueError as e:
         st.error(f"Validation error: {e}")

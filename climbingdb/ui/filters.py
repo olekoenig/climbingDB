@@ -158,7 +158,7 @@ def _render_stars_filter():
     return st.sidebar.slider(
         "Minimum Stars",
         min_value=0,
-        max_value=3,
+        max_value=5,
         value=0,
         step=1,
         format="%d",
