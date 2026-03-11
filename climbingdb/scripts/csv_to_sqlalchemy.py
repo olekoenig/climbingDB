@@ -6,7 +6,6 @@ Run as:
 """
 
 import pandas as pd
-from sqlalchemy import text
 import getpass
 from datetime import datetime
 import bcrypt
@@ -15,9 +14,15 @@ from climbingdb.models import SessionLocal, init_db, drop_all
 from climbingdb.models import Country, Area, Crag, Route, User, Pitch, Ascent, PitchAscent
 from climbingdb.config import ROUTES_CSV_FILE, BOULDERS_CSV_FILE, MULTIPITCHES_CSV_FILE
 from climbingdb.grade import Grade
+from climbingdb.services.crud import (
+    get_or_create_location,
+    get_or_create_route,
+    create_ascent,
+    create_pitches_and_ascents
+)
 
 
-def parse_multipitch_pitches(pitches_str):
+def _parse_multipitch_pitches(pitches_str):
     """Parse comma-separated pitch grades. Parentheses indicate followed pitch."""
     if not pitches_str:
         return None
@@ -34,117 +39,11 @@ def parse_multipitch_pitches(pitches_str):
     return result
 
 
-def get_or_create_country(session, country_name):
-    """Get existing country or create new one."""
-    if not country_name:
-        raise ValueError("Country is required")
-
-    country = session.query(Country).filter(Country.name == country_name).first()
-    if not country:
-        country = Country(name=country_name)
-        session.add(country)
-        session.flush()
-        print(f"  Created country: {country_name}")
-
-    return country
-
-
-def get_or_create_area(session, area_name, country):
-    """Get existing area or create new one."""
-    if not area_name:
-        raise ValueError("Area is required")
-
-    query = session.query(Area).filter(Area.name == area_name)
-    if country:
-        query = query.filter(Area.country_id == country.id)
-
-    area = query.first()
-    if not area:
-        area = Area(name=area_name, country=country)
-        session.add(area)
-        session.flush()
-        print(f"  Created area: {area_name}, {country.name}")
-
-    return area
-
-
-def get_or_create_crag(session, crag_name, area):
-    """Get existing crag or create new one."""
-    if not crag_name:
-        raise ValueError("Crag is required")
-
-    query = session.query(Crag).filter(Crag.name == crag_name, Crag.area_id == area.id)
-
-    crag = query.first()
-    if not crag:
-        crag = Crag(name=crag_name, area=area)
-        session.add(crag)
-        session.flush()
-        print(f"  Created crag: {crag_name}")
-
-    return crag
-
-
-def get_or_create_route(session, discipline, crag, route_name, grade, ole_grade, length, ernsthaftigkeit):
-    # Check if Route already exists (universal entity)
-    route = session.query(Route).filter(
-        Route.name == route_name,
-        Route.crag_id == crag.id,
-        Route.discipline == discipline
-    ).first()
-
-    # Create Route if it doesn't exist
-    if not route:
-        route = Route(
-            name=route_name,
-            crag=crag,
-            discipline=discipline,
-            consensus_grade=grade,  # Use CSV grade as consensus
-            consensus_ole_grade=ole_grade,
-            length=length,
-            ernsthaftigkeit=ernsthaftigkeit
-        )
-        session.add(route)
-        session.flush()
-        print(f"  Created route: {route_name}")
-
-    return route
-
-
-def create_pitches_from_data(session, route, ascent, pitch_data):
-    """Create Pitch objects for a multipitch route."""
-    if not pitch_data:
-        return
-
-    for i, pitch_info in enumerate(pitch_data):
-        # Check if Pitch already exists for this route
-        pitch = session.query(Pitch).filter(
-            Pitch.route_id == route.id,
-            Pitch.pitch_number == i + 1
-        ).first()
-
-        if not pitch:
-            pitch = Pitch(
-                route=route,
-                pitch_number=i + 1,
-                pitch_consensus_grade=pitch_info['grade']
-            )
-            session.add(pitch)
-
-        # Create user's PitchAscent
-        pitch_ascent = PitchAscent(
-            ascent=ascent,
-            pitch=pitch,
-            grade=pitch_info['grade'],
-            led=pitch_info['led']
-        )
-        session.add(pitch_ascent)
-        session.flush()
-
-
-def get_route_fields(row, discipline):
+def _get_route_fields(row, discipline):
     routename = row['name']
     crag = row['crag']
+    area = row['area']
+    country = row['country']
     grade = row['grade']
 
     # Catch cases where boulders have a route grade (e.g., 5.9 for a tall boulder), set grade to "VB"
@@ -153,16 +52,14 @@ def get_route_fields(row, discipline):
         if grade_scale in ['YDS', 'UIAA', 'French', 'Elbsandstein']:
             grade = "VB"
 
-    ole_grade = Grade(grade).conv_grade()
-
     # Fields that are only in multipitch table
     length = float(getattr(row, 'length', 0))
     ernsthaftigkeit = getattr(row, 'ernsthaftigkeit', None)
 
-    return routename, crag, grade, ole_grade, length, ernsthaftigkeit
+    return routename, crag, area, country, grade, length, ernsthaftigkeit
 
 
-def get_ascent_fields(row):
+def _get_ascent_fields(row):
     # Re-scale stars from 1-3 to 1-5
     stars = round(float(row['stars'])*5/2.85) if row['stars'] != '' else 0
     style = row['style'] if row['style'] else None
@@ -184,9 +81,28 @@ def get_ascent_fields(row):
     return stars, style, shortnote, notes, is_project, is_milestone, ascent_date
 
 
-def get_pitch_fields(row):
-    pitches = row['pitches'] if row['pitches'] else None
-    return parse_multipitch_pitches(pitches)
+def _create_default_user(session, username, email, password):
+    """Create default user for imported routes."""
+    existing_user = session.query(User).filter(User.username == username).first()
+    if existing_user:
+        print(f"  ⚠️ User '{username}' already exists")
+        use_existing = input(f"  Use existing user? (yes/no): ")
+        if use_existing.lower() == 'yes':
+            return existing_user
+        raise ValueError("User already exists")
+
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    user = User(
+        username=username,
+        email=email,
+        password_hash=password_hash
+    )
+
+    session.add(user)
+    session.commit()
+
+    return user
 
 
 def import_routes_from_csv(csv_file, discipline, session, user_id):
@@ -212,34 +128,33 @@ def import_routes_from_csv(csv_file, discipline, session, user_id):
 
     for idx, row in df.iterrows():
         try:
-            country = get_or_create_country(session, row['country'])
-            area = get_or_create_area(session, row['area'], country)
+            route_name, crag_name, area_name, country_name, grade, length, ernsthaftigkeit = _get_route_fields(row, discipline)
 
-            routename, crag_name, grade, ole_grade, length, ernsthaftigkeit = get_route_fields(row, discipline)
+            crag = get_or_create_location(session, country_name, area_name, crag_name, verbose=True)
+            route = get_or_create_route(session, route_name, discipline, crag, grade,
+                                        length=length, ernsthaftigkeit=ernsthaftigkeit,
+                                        verbose=True)
 
-            crag = get_or_create_crag(session, crag_name, area)
-            route = get_or_create_route(session, discipline, crag, routename, grade, ole_grade, length, ernsthaftigkeit)
-            stars, style, shortnote, notes, is_project, is_milestone, ascent_date = get_ascent_fields(row)
+            stars, style, shortnote, notes, is_project, is_milestone, ascent_date = _get_ascent_fields(row)
 
-            ascent = Ascent(
+            ascent = create_ascent(
+                session,
                 user_id=user_id,
                 route=route,
-                date=ascent_date,
                 grade=grade,
                 style=style,
+                date=ascent_date,
                 stars=stars,
                 shortnote=shortnote,
                 notes=notes,
+                gear=None,  # not in CSV
                 is_project=is_project,
                 is_milestone=is_milestone
             )
 
-            session.add(ascent)
-            session.flush()
-
-            if discipline == "Multipitch":
-                pitch_data = get_pitch_fields(row)
-                create_pitches_from_data(session, route, ascent, pitch_data)
+            if discipline == "Multipitch" and row['pitches'] is not None:
+                pitch_data = _parse_multipitch_pitches(row['pitches'])
+                create_pitches_and_ascents(session, route, ascent, pitch_data)
 
             imported_count += 1
 
@@ -259,30 +174,6 @@ def import_routes_from_csv(csv_file, discipline, session, user_id):
         print(f"  ⚠️ Skipped {skipped_count} routes")
 
     return imported_count
-
-
-def _create_default_user(session, username, email, password):
-    """Create default user for imported routes."""
-    existing_user = session.query(User).filter(User.username == username).first()
-    if existing_user:
-        print(f"  ⚠️ User '{username}' already exists")
-        use_existing = input(f"  Use existing user? (yes/no): ")
-        if use_existing.lower() == 'yes':
-            return existing_user
-        raise ValueError("User already exists")
-
-    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-    user = User(
-        username=username,
-        email=email,
-        password_hash=password_hash
-    )
-
-    session.add(user)
-    session.commit()
-
-    return user
 
 
 def import_all_csv_files(recreate_db=True):

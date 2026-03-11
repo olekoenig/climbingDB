@@ -9,6 +9,12 @@ from datetime import datetime
 
 from climbingdb.models import SessionLocal, Route, Crag, Area, Country, Pitch, Ascent, PitchAscent
 from climbingdb.grade import Grade
+from climbingdb.services.crud import (
+    get_or_create_location,
+    get_or_create_route,
+    create_ascent,
+    create_pitches_and_ascents
+)
 
 
 class ClimbingService:
@@ -101,6 +107,7 @@ class ClimbingService:
 
         return pd.DataFrame(data)
 
+
     def get_filtered_routes(self, discipline="Sportclimb",
                             crag=None, area=None, grade=None, style=None,
                             stars=None, operation="=="):
@@ -146,6 +153,7 @@ class ClimbingService:
         ascents = query.order_by(Ascent.ole_grade.desc()).all()
         return self._ascents_to_dataframe(ascents)
 
+
     def get_multipitches(self):
         """Get all multipitch ascents."""
         query = self._base_query().filter(
@@ -156,6 +164,7 @@ class ClimbingService:
         ascents = query.order_by(Ascent.ole_grade.asc()).all()
         return self._ascents_to_dataframe(ascents)
 
+
     def get_boulders(self):
         """Get all boulder ascents."""
         query = self._base_query().filter(
@@ -164,6 +173,7 @@ class ClimbingService:
         query = query.join(Route.crag).join(Crag.area)
         ascents = query.order_by(Ascent.ole_grade.asc()).all()
         return self._ascents_to_dataframe(ascents)
+
 
     def get_projects(self, crag=None, area=None):
         """Get project ascents."""
@@ -178,12 +188,14 @@ class ClimbingService:
         ascents = query.order_by(Ascent.ole_grade.asc()).all()
         return self._ascents_to_dataframe(ascents)
 
+
     def get_milestones(self):
         """Get milestone ascents."""
         query = self._base_query().filter(Ascent.is_milestone == True)
         query = query.join(Route.crag).join(Crag.area)
         ascents = query.order_by(Ascent.ole_grade.asc()).all()
         return self._ascents_to_dataframe(ascents)
+
 
     def add_ascent(self, name, grade, discipline, crag_name, area_name, country_name,
                    style=None, date=None, stars=0, shortnote=None, notes=None,
@@ -195,107 +207,24 @@ class ClimbingService:
             raise ValueError("user_id required to add ascents")
 
         try:
-            # Get/create location
-            country = None
-            if country_name:
-                country = self.session.query(Country).filter(Country.name == country_name).first()
-                if not country:
-                    country = Country(name=country_name)
-                    self.session.add(country)
-                    self.session.flush()
-
-            area = self.session.query(Area).filter(Area.name == area_name).first()
-            if not area:
-                area = Area(name=area_name, country=country)
-                self.session.add(area)
-                self.session.flush()
-
-            crag = self.session.query(Crag).filter(
-                Crag.name == crag_name,
-                Crag.area_id == area.id
-            ).first()
-            if not crag:
-                crag = Crag(name=crag_name, area=area)
-                self.session.add(crag)
-                self.session.flush()
-
             if isinstance(date, str):
                 date = datetime.strptime(date, '%Y-%m-%d').date()
 
-            # Check if Route exists
-            route = self.session.query(Route).filter(
-                Route.name == name,
-                Route.crag_id == crag.id,
-                discipline=discipline
-            ).first()
+            crag = get_or_create_location(self.session, country_name, area_name, crag_name)
 
-            if not route:
-                route = Route(
-                    name=name,
-                    crag=crag,
-                    discipline=discipline,
-                    consensus_grade=grade,
-                    length=length,
-                    ernsthaftigkeit=ernsthaftigkeit,
-                    latitude=latitude,
-                    longitude=longitude
-                )
-                self.session.add(route)
-                self.session.flush()
+            route = get_or_create_route(self.session, name, discipline, crag, grade,
+                                        length=length, ernsthaftigkeit=ernsthaftigkeit,
+                                        latitude=latitude, longitude=longitude)
 
-            # Create Ascent for this user
-            ascent = Ascent(
-                user_id=self.user_id,
-                route=route,
-                grade=grade,
-                style=style,
-                date=date,
-                stars=int(stars),
-                shortnote=shortnote,
-                notes=notes,
-                gear=gear,
-                is_project=is_project,
-                is_milestone=is_milestone,
-                ascent_time=ascent_time
-            )
-            self.session.add(ascent)
-            self.session.flush()
+            ascent = create_ascent(self.session, self.user_id, route, grade,
+                                   style=style, date=date, stars=stars,
+                                   shortnote=shortnote, notes=notes, gear=gear,
+                                   ernsthaftigkeit=ernsthaftigkeit,
+                                   is_project=is_project, is_milestone=is_milestone,
+                                   ascent_time=ascent_time)
 
-            # Add pitches for multipitch
             if discipline == "Multipitch" and pitches:
-                for i, pitch_data in enumerate(pitches):
-                    # Check if Pitch exists
-                    pitch = self.session.query(Pitch).filter(
-                        Pitch.route_id == route.id,
-                        Pitch.pitch_number == i + 1
-                    ).first()
-
-                    if not pitch:
-                        # Create universal Pitch
-                        pitch = Pitch(
-                            route=route,
-                            pitch_number=i + 1,
-                            pitch_consensus_grade=pitch_data.get('grade'),
-                            pitch_length=pitch_data.get('pitch_length'),
-                            pitch_name=pitch_data.get('pitch_name'),
-                            pitch_ernsthaftigkeit = pitch_data.get('pitch_ernsthaftigkeit')
-                        )
-                        self.session.add(pitch)
-                        self.session.flush()
-
-                    # Create user's PitchAscent
-                    pitch_ascent = PitchAscent(
-                        ascent=ascent,
-                        pitch=pitch,
-                        grade=pitch_data.get('grade', '7a'),
-                        led=pitch_data.get('led', True),
-                        style=pitch_data.get('style'),
-                        stars=pitch_data.get('stars', 0),
-                        shortnote=pitch_data.get('shortnote'),
-                        notes=pitch_data.get('notes'),
-                        gear=pitch_data.get('gear'),
-                    )
-                    self.session.add(pitch_ascent)
+                create_pitches_and_ascents(self.session, route, ascent, pitches)
 
             self.session.commit()
             return ascent
@@ -303,6 +232,7 @@ class ClimbingService:
         except Exception as e:
             self.session.rollback()
             raise
+
 
     def update_ascent(self, ascent_id: int, **kwargs):
         """Update user's ascent."""
@@ -326,6 +256,7 @@ class ClimbingService:
         self.session.commit()
         return ascent
 
+
     def delete_ascent(self, ascent_id: int) -> bool:
         """Delete user's ascent (and cascade to pitch ascents)."""
         ascent = self._base_query().filter(Ascent.id == ascent_id).first()
@@ -337,13 +268,16 @@ class ClimbingService:
         self.session.commit()
         return True
 
+
     def get_ascent_by_id(self, ascent_id: int):
         """Get ascent by ID (user-filtered)."""
         return self._base_query().filter(Ascent.id == ascent_id).first()
 
+
     def get_route_by_id(self, route_id: int):
         """Get universal route by ID."""
         return self.session.query(Route).filter(Route.id == route_id).first()
+
 
     def get_statistics(self):
         """Get user statistics."""
