@@ -229,13 +229,13 @@ class ClimbingService:
             ).first()
 
             if not route:
-                # Create new Route
                 route = Route(
                     name=name,
                     crag=crag,
                     discipline=discipline,
                     consensus_grade=grade,
                     length=length,
+                    ernsthaftigkeit=ernsthaftigkeit,
                     latitude=latitude,
                     longitude=longitude
                 )
@@ -253,7 +253,6 @@ class ClimbingService:
                 shortnote=shortnote,
                 notes=notes,
                 gear=gear,
-                ernsthaftigkeit=ernsthaftigkeit,
                 is_project=is_project,
                 is_milestone=is_milestone,
                 ascent_time=ascent_time
@@ -376,15 +375,19 @@ if __name__ == "__main__":
     print("Testing ClimbingService")
     db = ClimbingService()
 
-    print("\n=== Statistics ===")
-    stats = db.get_statistics()
-    for key, value in stats.items():
-        print(f"{key}: {value}")
+    #print("\n=== Statistics ===")
+    #stats = db.get_statistics()
+    #for key, value in stats.items():
+    #    print(f"{key}: {value}")
 
-    print("\n=== Boulders ===")
-    boulders = db.get_boulders()
-    print(boulders[['name', 'grade', 'style', 'crag', 'date', 'stars']].head(10))
+    #print("\n=== Boulders ===")
+    #boulders = db.get_boulders()
+    #print(boulders[['name', 'grade', 'style', 'crag', 'date', 'stars']].head(10))
 
-    print("\n=== Filtered (8a+ sport) ===")
-    routes = db.get_filtered_routes(discipline="Sportclimb", grade="8a", operation=">=")
-    print(routes[['name', 'grade', 'crag', 'area']].head(10))
+    print("\n=== Test area filter ===")
+    routes = db.get_filtered_routes(discipline="Sportclimb", area="Frankenjura")
+    print(routes)
+
+    #print("\n=== Filtered (8a+ sport) ===")
+    #routes = db.get_filtered_routes(discipline="Sportclimb", grade="8a", operation=">=")
+    #print(routes[['name', 'grade', 'crag', 'area']].head(10))

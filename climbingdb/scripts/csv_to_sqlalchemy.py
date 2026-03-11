@@ -17,33 +17,6 @@ from climbingdb.config import ROUTES_CSV_FILE, BOULDERS_CSV_FILE, MULTIPITCHES_C
 from climbingdb.grade import Grade
 
 
-def _create_performance_indexes():
-    """Create database indexes for query performance."""
-    session = SessionLocal()
-
-    indexes = [
-        "CREATE INDEX IF NOT EXISTS ix_crags_area_id ON crags(area_id);",
-        "CREATE INDEX IF NOT EXISTS ix_areas_country_id ON areas(country_id);",
-        "CREATE INDEX IF NOT EXISTS ix_routes_discipline ON routes(discipline);",
-        "CREATE INDEX IF NOT EXISTS ix_routes_ole_grade ON routes(ole_grade);",
-        "CREATE INDEX IF NOT EXISTS ix_routes_is_project ON routes(is_project);",
-        "CREATE INDEX IF NOT EXISTS ix_routes_crag_id ON routes(crag_id);",
-        "CREATE INDEX IF NOT EXISTS ix_routes_user_id ON routes(user_id);",
-        "CREATE INDEX IF NOT EXISTS ix_pitches_route_id ON pitches(route_id);",
-    ]
-
-    for idx_sql in indexes:
-        try:
-            session.execute(text(idx_sql))
-            print(f"  ✓ {idx_sql.split('INDEX')[1].split('ON')[0].strip()}")
-        except Exception as e:
-            print(f"  ⚠️ Error: {e}")
-
-    session.commit()
-    session.close()
-    print("✓ Indexes created")
-
-
 def parse_multipitch_pitches(pitches_str):
     """Parse comma-separated pitch grades. Parentheses indicate followed pitch."""
     if not pitches_str:
@@ -172,23 +145,25 @@ def get_route_fields(row, discipline):
     routename = row['name']
     crag = row['crag']
     grade = row['grade']
+
+    # Catch cases where boulders have a route grade (e.g., 5.9 for a tall boulder), set grade to "VB"
+    if discipline == "Boulder":
+        grade_scale = Grade(grade).get_scale()
+        if grade_scale in ['YDS', 'UIAA', 'French', 'Elbsandstein']:
+            grade = "VB"
+
     ole_grade = Grade(grade).conv_grade()
 
     # Fields that are only in multipitch table
     length = float(getattr(row, 'length', 0))
     ernsthaftigkeit = getattr(row, 'ernsthaftigkeit', None)
 
-    # Catch cases where boulders have a route grade (e.g., 5.9 for a tall boulder)
-    if discipline == "Boulder":
-        grade_scale = Grade(grade).get_scale()
-        if grade_scale in ['YDS', 'UIAA', 'French', 'Elbsandstein']:
-            ole_grade = Grade("VB").conv_grade()
-
     return routename, crag, grade, ole_grade, length, ernsthaftigkeit
 
 
 def get_ascent_fields(row):
-    stars = int(row['stars']) if row['stars'] != '' else 0
+    # Re-scale stars from 1-3 to 1-5
+    stars = round(float(row['stars'])*5/2.85) if row['stars'] != '' else 0
     style = row['style'] if row['style'] else None
     shortnote = row['shortnote'] if row['shortnote'] else None
     notes = row['notes'] if row['notes'] else None
@@ -210,9 +185,7 @@ def get_ascent_fields(row):
 
 def get_pitch_fields(row):
     pitches = row['pitches'] if row['pitches'] else None
-    pitch_data = parse_multipitch_pitches(pitches)
-    pitch_number = len(pitch_data) if pitch_data else 1
-    return pitch_data, pitch_number
+    return parse_multipitch_pitches(pitches)
 
 
 def import_routes_from_csv(csv_file, discipline, session, user_id):
@@ -264,7 +237,7 @@ def import_routes_from_csv(csv_file, discipline, session, user_id):
             session.flush()
 
             if discipline == "Multipitch":
-                pitch_data, pitch_number = get_pitch_fields(row)
+                pitch_data = get_pitch_fields(row)
                 create_pitches_from_data(session, route, ascent, pitch_data)
 
             imported_count += 1
@@ -326,9 +299,6 @@ def import_all_csv_files(recreate_db=True):
         drop_all()
         init_db()
         print("\n✓ Tables created")
-
-        #print("\nCreating indexes...")
-        #_create_performance_indexes()
     else:
         init_db()
 
