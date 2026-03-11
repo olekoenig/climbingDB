@@ -89,7 +89,8 @@ def get_or_create_route(session, discipline, crag, route_name, grade, ole_grade,
     # Check if Route already exists (universal entity)
     route = session.query(Route).filter(
         Route.name == route_name,
-        Route.crag_id == crag.id
+        Route.crag_id == crag.id,
+        Route.discipline == discipline
     ).first()
 
     # Create Route if it doesn't exist

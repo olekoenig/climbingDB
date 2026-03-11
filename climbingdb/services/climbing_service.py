@@ -225,7 +225,8 @@ class ClimbingService:
             # Check if Route exists
             route = self.session.query(Route).filter(
                 Route.name == name,
-                Route.crag_id == crag.id
+                Route.crag_id == crag.id,
+                discipline=discipline
             ).first()
 
             if not route:
@@ -385,7 +386,7 @@ if __name__ == "__main__":
     #print(boulders[['name', 'grade', 'style', 'crag', 'date', 'stars']].head(10))
 
     print("\n=== Test area filter ===")
-    routes = db.get_filtered_routes(discipline="Sportclimb", area="Frankenjura")
+    routes = db.get_filtered_routes(discipline="Multipitch", crag="El Capitan")
     print(routes)
 
     #print("\n=== Filtered (8a+ sport) ===")
