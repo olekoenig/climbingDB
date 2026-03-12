@@ -2,7 +2,7 @@
 Mixins for shared model fields.
 """
 
-from sqlalchemy import Column, String, Float, Text, Date, Integer
+from sqlalchemy import Column, String, Float, Text, Integer
 from sqlalchemy.orm import validates
 from climbingdb.grade import Grade
 

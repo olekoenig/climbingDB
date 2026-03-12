@@ -1,8 +1,9 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, Text, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 from datetime import datetime, timezone
 
 from climbingdb.models.base import Base
+from climbingdb.grade import Grade
 
 
 class Route(Base):
@@ -44,6 +45,12 @@ class Route(Base):
 
     def __str__(self):
         return f"{self.name} ({self.consensus_grade})"
+
+    @validates('consensus_grade')
+    def compute_consensus_ole_grade(self, key, grade_value):
+        if grade_value:
+            self.consensus_ole_grade = Grade(grade_value).conv_grade()
+        return grade_value
 
     @property
     def area(self):
