@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload, contains_eager
 import pandas as pd
 from datetime import datetime
 
-from climbingdb.models import SessionLocal, Route, Crag, Area, Country, Pitch, Ascent, PitchAscent
+from climbingdb.models import SessionLocal, Route, Crag, Area, Ascent, PitchAscent
 from climbingdb.grade import Grade
 from climbingdb.services.crud import (
     get_or_create_location,
@@ -35,7 +35,8 @@ class ClimbingService:
             query = query.filter(Ascent.user_id == self.user_id)
         return query
 
-    def _ascents_to_dataframe(self, ascents) -> pd.DataFrame:
+    @staticmethod
+    def _ascents_to_dataframe(ascents) -> pd.DataFrame:
         """Convert list of Ascent objects to DataFrame."""
         if not ascents:
             return pd.DataFrame({
@@ -219,7 +220,6 @@ class ClimbingService:
             ascent = create_ascent(self.session, self.user_id, route, grade,
                                    style=style, date=date, stars=stars,
                                    shortnote=shortnote, notes=notes, gear=gear,
-                                   ernsthaftigkeit=ernsthaftigkeit,
                                    is_project=is_project, is_milestone=is_milestone,
                                    ascent_time=ascent_time)
 

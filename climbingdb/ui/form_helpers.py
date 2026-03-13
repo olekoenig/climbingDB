@@ -20,7 +20,7 @@ def get_style_options(discipline):
         return ["o.s.", "F", "2. Go", "toprope"]
     else:  # Multipitch
         return ["o.s.", "F", "AF", "followed"]
-    
+
 
 def get_grade_options(grade_system):
     """Get sorted grade options for a grading system."""
