@@ -57,7 +57,7 @@ class AuthService:
         user = User(
             username=username,
             password_hash=self.hash_password(password),
-            email=email
+            email=email if email else None
         )
 
         self.session.add(user)
