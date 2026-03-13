@@ -207,10 +207,10 @@ def _render_edit_form(db, ascent):
                             value=pa.grade if pa.grade else "",
                             key=f"edit_pitch_grade_{pa.id}"
                         )
-                        new_pitch_style = st.text_input(
-                            "Style",
-                            value=pa.style if pa.style else "",
-                            key=f"edit_pitch_style_{pa.id}"
+                        new_pitch_name = st.text_input(
+                            "Pitch name",
+                            value=pa.name if pa.name else "",
+                            key=f"edit_pitch_name_{pa.id}"
                         )
                     with col2:
                         new_pitch_led = st.checkbox(
@@ -218,9 +218,14 @@ def _render_edit_form(db, ascent):
                             value=pa.led if pa.led is not None else True,
                             key=f"edit_pitch_led_{pa.id}"
                         )
+                        new_pitch_style = st.text_input(
+                            "Style",
+                            value=pa.style if pa.style else "",
+                            key=f"edit_pitch_style_{pa.id}"
+                        )
                         new_pitch_stars = st.selectbox(
                             "Stars",
-                            [0, 1, 2, 3],
+                            [0, 1, 2, 3, 4, 5],
                             index=int(pa.stars) if pa.stars else 0,
                             key=f"edit_pitch_stars_{pa.id}"
                         )
@@ -239,6 +244,7 @@ def _render_edit_form(db, ascent):
                     pitch_updates.append({
                         'pitch_ascent_id': pa.id,
                         'grade': new_pitch_grade,
+                        'pitch_name': new_pitch_name if new_pitch_name else None,
                         'led': new_pitch_led,
                         'style': new_pitch_style if new_pitch_style else None,
                         'stars': new_pitch_stars,
