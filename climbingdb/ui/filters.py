@@ -5,7 +5,7 @@ Sidebar filter components.
 import streamlit as st
 from sqlalchemy import distinct
 
-from climbingdb.models import Area, Crag, Route
+from climbingdb.models import Area, Crag, Route, Ascent
 from .constants import (
     GRADE_OPTIONS_ROUTES,
     GRADE_OPTIONS_BOULDERS,
@@ -26,8 +26,8 @@ def get_grade_system_options(view):
 def get_discipline_areas(db, discipline):
     """Get areas that have routes in the specified discipline."""
     if discipline == "Projects":
-        areas = db.session.query(distinct(Area.name)).join(Area.crags).join(Crag.routes).filter(
-            Route.is_project == True
+        areas = db.session.query(distinct(Area.name)).join(Area.crags).join(Crag.routes).join(Route.ascents).filter(
+            Ascent.is_project == True
         ).all()
     else:
         areas = db.session.query(distinct(Area.name)).join(Area.crags).join(Crag.routes).filter(
@@ -158,7 +158,7 @@ def _render_stars_filter():
     return st.sidebar.slider(
         "Minimum Stars",
         min_value=0,
-        max_value=3,
+        max_value=5,
         value=0,
         step=1,
         format="%d",

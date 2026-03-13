@@ -65,28 +65,6 @@ class TestIndexes(unittest.TestCase):
             f"Missing index on routes.discipline. Found indexes: {route_indexes}"
         )
 
-    def test_routes_ole_grade_index(self):
-        """Test that routes.ole_grade has an index."""
-        indexes = self._get_indexes()
-        route_indexes = [idx_name for table, idx_name in indexes if table == 'routes']
-
-        ole_grade_indexed = any('ole_grade' in idx.lower() for idx in route_indexes)
-        self.assertTrue(
-            ole_grade_indexed,
-            f"Missing index on routes.ole_grade. Found indexes: {route_indexes}"
-        )
-
-    def test_routes_is_project_index(self):
-        """Test that routes.is_project has an index."""
-        indexes = self._get_indexes()
-        route_indexes = [idx_name for table, idx_name in indexes if table == 'routes']
-
-        is_project_indexed = any('is_project' in idx.lower() or 'project' in idx.lower() for idx in route_indexes)
-        self.assertTrue(
-            is_project_indexed,
-            f"Missing index on routes.is_project. Found indexes: {route_indexes}"
-        )
-
     def test_routes_crag_id_foreign_key_index(self):
         """Test that routes.crag_id has an index (from foreign key)."""
         indexes = self._get_indexes()

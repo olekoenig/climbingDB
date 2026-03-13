@@ -155,7 +155,7 @@ YDS = {
 Elbsandstein = {
     'II': 7, 
     'III': 8,
-    'VI': 10,
+    'IV': 10,
     'V': 11,
     'VI': 13,
     'VIIa': 15,
@@ -285,17 +285,17 @@ class Grade:
         }
 
         # Handle the aid climbing scale: If the route is, e.g., 5.8 C2, treat it as 5.8 instead
-        if ("R" in self.value or "C" in self.value or "A" in self.value):
+        if "R" in self.value or "C" in self.value or "A" in self.value:
             self.value = self.value.split(" ")[0]
 
         # Handle double Elbsandstein/French grade: Treat Xa/7c+ as Xa
         # (assuming that Elbsandstein has no slash grades!)
-        if (scale == "Elbsandstein" and "/" in self.value):
+        if scale == "Elbsandstein" and "/" in self.value:
             self.value = self.value.split("/")[0]
             
         # Handle traverse grades by subtracting 1 from ole_scale
         # IS THIS ONLY FRANKENJURA CONVENTION!?
-        if ("trav" in self.value):
+        if "trav" in self.value:
             return conversions[scale][self.value.split(" trav")[0]] - 1
             
         if scale == "undetermined" or self.value not in conversions[scale]:
