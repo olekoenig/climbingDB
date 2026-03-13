@@ -1,5 +1,12 @@
 Frontend:
 
+- add achievements batch:
+  - SANDBAGGER/GRADE INFLATOR
+  - AMOUNT xsxOF METERS CLIMBED IN ONE DAY
+  - ROUTE MARATHON, in X Gebieten
+  - 8a boulder
+  - Bleau parkour
+  - Kommentator
 - Google icon material design anstratt emojis
 - stars -> visuell, 5 sterne statt 3
 - cannot shift notes window when expanded
@@ -24,6 +31,7 @@ Backend:
 - Bleau: parkour als MSL, mit Boulder grad
 - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)
 - add 8a.nu import feature
+- consensus grade = AVERAGE(ascent.grade), gewichtet mit #routen des users, evtl. mit erfahrung in diesem Grad?
 
 Database:
 - Add denormalized fields of area and crag in Route class for faster filtering/display
