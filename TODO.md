@@ -1,5 +1,6 @@
 Frontend:
 
+- tabs instead of buttons for navigation
 - add achievements batch:
   - SANDBAGGER/GRADE INFLATOR
   - AMOUNT xsxOF METERS CLIMBED IN ONE DAY

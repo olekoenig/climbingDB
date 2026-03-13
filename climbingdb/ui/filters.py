@@ -68,7 +68,7 @@ def _render_filter_header():
     with col_header:
         st.markdown("### Filters")
     with col_reset:
-        if st.button("🔄", help="Reset all filters", key="reset_filters"):
+        if st.button(":material/refresh:", help="Reset all filters", key="reset_filters"):
             st.session_state.selected_area = "All"
             st.session_state.grade_operation_select = ">="
             st.session_state.grade_select = "All"
@@ -172,13 +172,13 @@ def render_filter_summary(filters):
     st.sidebar.markdown("### Active Filters")
     
     if filters['selected_area'] != "All":
-        st.sidebar.write(f"📍 Area: {filters['selected_area']}")
+        st.sidebar.write(f":material/location_on: Area: {filters['selected_area']}")
     
     if filters['selected_grade'] != "All":
-        st.sidebar.write(f"📈 Grade: {filters['grade_operation']} {filters['selected_grade']}")
+        st.sidebar.write(f":material/show_chart: Grade: {filters['grade_operation']} {filters['selected_grade']}")
     
     if filters['grade_system'] != "Original":
-        st.sidebar.write(f"🎚️ Grade System: {filters['grade_system']}")
+        st.sidebar.write(f":material/grading: Grade System: {filters['grade_system']}")
     
     if filters['selected_stars'] > 0:
-        st.sidebar.write(f"⭐ Stars: ≥ {filters['selected_stars']}")
+        st.sidebar.write(f":material/star: Stars: ≥ {filters['selected_stars']}")
