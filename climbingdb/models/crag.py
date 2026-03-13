@@ -7,13 +7,15 @@ class Crag(Base):
     __tablename__ = 'crags'
 
     # Primary key
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True)
 
     # Fields
     name = Column(String(200), nullable=False, index=True)
     area_id = Column(Integer, ForeignKey('areas.id'), nullable=False, index=True)
 
-    notes = Column(Text, nullable=True)
+    crag_notes = Column(Text, nullable=True)
+    parking_latitude = Column(Float, nullable=True)
+    parking_longitude = Column(Float, nullable=True)
 
     # Relationships
     area = relationship("Area", back_populates="crags")

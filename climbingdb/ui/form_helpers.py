@@ -30,7 +30,7 @@ def get_grade_options(grade_system):
 
 def get_shortnote_options(discipline):
     """Get short note options for discipline."""
-    shortnote = ["", "soft", "hard"]
+    shortnote = ["", "soft", "hard", "FA"]
     if discipline == "Boulder":
         shortnote.append("trav")
     else:
