@@ -109,6 +109,19 @@ class ClimbingService:
         return pd.DataFrame(data)
 
 
+    @staticmethod
+    def _filter_query_for_location(query, area, crag):
+        query = query.join(Route.crag).join(Crag.area)
+        query = query.options(
+            contains_eager(Ascent.route).contains_eager(Route.crag).contains_eager(Crag.area)
+        )
+        if area:
+            query = query.filter(Area.name == area)
+        if crag:
+            query = query.filter(Crag.name == crag)
+        return query
+
+
     def get_filtered_routes(self, discipline="Sportclimb",
                             crag=None, area=None, grade=None, style=None,
                             stars=None, operation="=="):
@@ -117,14 +130,7 @@ class ClimbingService:
 
         # Eager load route and location
         if area or crag:
-            query = query.join(Route.crag).join(Crag.area)
-            query = query.options(
-                contains_eager(Ascent.route).contains_eager(Route.crag).contains_eager(Crag.area)
-            )
-            if area:
-                query = query.filter(Area.name == area)
-            if crag:
-                query = query.filter(Crag.name == crag)
+            self._filter_query_for_location(query, area=area, crag=crag)
         else:
             query = query.options(
                 joinedload(Ascent.route).joinedload(Route.crag).joinedload(Crag.area)
@@ -179,12 +185,9 @@ class ClimbingService:
     def get_projects(self, crag=None, area=None):
         """Get project ascents."""
         query = self._base_query().filter(Ascent.is_project == True)
-        query = query.join(Route.crag).join(Crag.area)
 
-        if area:
-            query = query.filter(Area.name == area)
-        if crag:
-            query = query.filter(Crag.name == crag)
+        if area or crag:
+            self._filter_query_for_location(query, area=area, crag=crag)
 
         ascents = query.order_by(Ascent.ole_grade.asc()).all()
         return self._ascents_to_dataframe(ascents)
