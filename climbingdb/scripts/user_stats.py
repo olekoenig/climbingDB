@@ -1,4 +1,4 @@
-from climbingdb.models import SessionLocal, User, Route
+from climbingdb.models import SessionLocal, User, Route, Ascent
 import pandas as pd
 
 
@@ -13,27 +13,27 @@ def get_user_statistics():
         user_data = []
         for user in users:
             # Count routes per discipline
-            sportclimb_count = session.query(Route).filter(
-                Route.user_id == user.id,
+            sportclimb_count = session.query(Ascent).join(Ascent.route).filter(
+                Ascent.user_id == user.id,
                 Route.discipline == "Sportclimb"
             ).count()
 
-            boulder_count = session.query(Route).filter(
-                Route.user_id == user.id,
+            boulder_count = session.query(Ascent).join(Ascent.route).filter(
+                Ascent.user_id == user.id,
                 Route.discipline == "Boulder"
             ).count()
 
-            multipitch_count = session.query(Route).filter(
-                Route.user_id == user.id,
+            multipitch_count = session.query(Ascent).join(Ascent.route).filter(
+                Ascent.user_id == user.id,
                 Route.discipline == "Multipitch"
             ).count()
 
             total_routes = sportclimb_count + boulder_count + multipitch_count
 
             # Get hardest route
-            hardest = session.query(Route).filter(
-                Route.user_id == user.id
-            ).order_by(Route.ole_grade.desc()).first()
+            hardest = session.query(Ascent).join(Ascent.route).filter(
+                Ascent.user_id == user.id
+            ).order_by(Route.consensus_ole_grade.desc()).first()
 
             user_data.append({
                 'User ID': user.id,

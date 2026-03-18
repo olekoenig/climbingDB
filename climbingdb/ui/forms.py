@@ -17,7 +17,7 @@ from climbingdb.grade import Grade
 
 
 def render_add_route_form(db, discipline):
-    with st.expander(f"➕ Add New {discipline}", expanded=False):
+    with st.expander(f":material/add: Add New {discipline}", expanded=False):
         country, area, crag, name = render_location_selector(db, discipline)
 
         # Fetch existing route data for auto-population (could be None)
@@ -118,7 +118,7 @@ def render_edit_delete_form(db, routes_df):
         for name, grade, crag in zip(routes_df['name'], routes_df['grade'], routes_df['crag'])
     ]
 
-    with st.expander("🔧 Edit or Delete Routes"):
+    with st.expander(":material/edit: Edit or Delete Routes"):
         selected_idx = st.selectbox("Select Route to Edit/Delete", range(len(route_options)),
                                     format_func=lambda i: route_options[i])
         # Hack to typecast numpy.int64 (from the pandas dataframe) to python-integer
@@ -129,7 +129,7 @@ def render_edit_delete_form(db, routes_df):
             st.error("Ascent not found!")
             return
 
-        tab1, tab2 = st.tabs(["✏️ Edit", "🗑️ Delete"])
+        tab1, tab2 = st.tabs([":material/edit: Edit", ":material/delete: Delete"])
 
         with tab1:
             _render_edit_form(db, ascent)
@@ -192,7 +192,7 @@ def _render_edit_form(db, ascent):
 
             # Pitch editing
             if ascent.pitch_ascents:
-                st.markdown("### ⛰️ Pitch Ascents")
+                st.markdown("### :material/altitude: Pitch Ascents")
 
                 sorted_pitch_ascents = sorted(ascent.pitch_ascents, key=lambda pa: pa.pitch.pitch_number)
 
@@ -220,7 +220,7 @@ def _render_edit_form(db, ascent):
                         )
                         new_pitch_stars = st.selectbox(
                             "Stars",
-                            [0, 1, 2, 3],
+                            [0, 1, 2, 3, 4, 5],
                             index=int(pa.stars) if pa.stars else 0,
                             key=f"edit_pitch_stars_{pa.id}"
                         )
@@ -275,7 +275,7 @@ def _render_edit_form(db, ascent):
                 if pitch_updates:
                     db.update_pitch_ascents(pitch_updates)
 
-                st.success(f"✅ Updated: {route.name}")
+                st.success(f":material/check: Updated: {route.name}")
                 st.session_state.show_edit_form = False
                 st.rerun()
 
@@ -288,7 +288,7 @@ def _render_delete_confirmation(db, ascent):
     route = ascent.route
 
     st.markdown(f"### Delete: {route.name}")
-    st.warning(f"⚠️ This will permanently delete **{route.name}** ({ascent.grade})")
+    st.warning(f":material/release_alert: This will permanently delete **{route.name}** ({ascent.grade})")
 
     if route.discipline == "Multipitch" and ascent.pitch_ascents:
         st.info(f"This will also delete your {len(ascent.pitch_ascents)} associated pitch ascents")
@@ -299,12 +299,12 @@ def _render_delete_confirmation(db, ascent):
 
     with col1:
         # Change to regular button (not form_submit_button)
-        if st.button("🗑️ Delete Permanently", type="primary",
+        if st.button(":material/delete: Delete Permanently", type="primary",
                      disabled=(confirm != route.name),
                      key=f"delete_btn_{route.id}"):
             try:
                 db.delete_ascent(ascent.id)
-                st.success(f"✅ Deleted your ascent of: {route.name}")
+                st.success(f":material/check: Deleted your ascent of: {route.name}")
                 st.rerun()
             except Exception as e:
                 st.error(f"Error deleting route: {e}")
@@ -329,7 +329,7 @@ def _render_multipitch_fields(grade_options, style_options, shortnote_options, e
     with col_time:
         ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0, step=0.5)
 
-    with st.expander("⛰️ Detailed Pitch Information", expanded=False):
+    with st.expander(":material/altitude: Detailed Pitch Information", expanded=False):
         st.markdown("Enter complete details for each pitch:")
 
         pitches_list = []
@@ -425,7 +425,7 @@ def _handle_form_submission(db, discipline, name, country, area, crag, route_dat
             ascent_time=route_data['ascent_time']
         )
 
-        st.success(f"✅ Successfully added: {ascent.route.name} ({ascent.grade})")
+        st.success(f":material/check: Successfully added: {ascent.route.name} ({ascent.grade})")
         st.cache_resource.clear()
         st.rerun()
 

@@ -8,10 +8,10 @@ import streamlit as st
 def render_navigation_buttons():
     """Render discipline navigation buttons."""
     disciplines = [
-        ("🧗 Sportclimbing", "Sportclimb"),
-        ("🪨 Bouldering", "Boulder"),
-        ("⛰️ Multipitches", "Multipitch"),
-        ("🎯 Projects", "Projects")
+        (":material/mountain_flag: Sportclimbing", "Sportclimb"),
+        (":material/landslide: Bouldering", "Boulder"),
+        (":material/altitude: Multipitches", "Multipitch"),
+        (":material/strategy: Projects", "Projects")
     ]
 
     cols = st.columns([2, 2, 2, 2, 2])

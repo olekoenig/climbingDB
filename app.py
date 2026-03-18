@@ -49,7 +49,7 @@ def main():
     """Main application entry point."""
     st.set_page_config(
         page_title="My Climbing Routes",
-        page_icon="🧗",
+        page_icon=":material/mountain_flag:",
         layout="wide"
     )
 
@@ -59,7 +59,7 @@ def main():
         user_id = st.session_state.user_id
     else:
         user_id = 1
-        st.info("📺 Demo Mode - Viewing Lauchinger's climbing logbook")
+        st.info(":material/co_present: Demo Mode - Viewing Lauchinger's climbing logbook")
 
     db = load_database(user_id)
 
@@ -73,11 +73,11 @@ def main():
         st.session_state.view = 'Sportclimb'
 
     # Render UI
-    st.title("🧗 My Climbing Logbook")
-    st.markdown("---")
+    st.title("My Climbing Logbook")
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-
     render_navigation_buttons()
+    st.markdown("---")
+    
     filters = render_sidebar_filters(db)
     with st.spinner("Loading your routes..."):
         routes = fetch_routes(db, filters)

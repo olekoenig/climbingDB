@@ -12,7 +12,7 @@ def render_login_page():
     st.title("Welcome to Sandbagger's Choice")
     st.markdown("---")
 
-    st.info("📺 New here? Check out the [demo with sample data](https://olesclimbingdb.streamlit.app) first!")
+    st.info(":material/co_present: New here? Check out the [demo with sample data](https://olesclimbingdb.streamlit.app) first!")
 
     # Create tabs for login and signup
     tab1, tab2 = st.tabs(["Login", "Sign Up"])
@@ -92,22 +92,22 @@ def render_user_menu():
         return
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown(f"### 👤 {st.session_state.username}")
+    st.sidebar.markdown(f"### :material/account_circle: {st.session_state.username}")
 
     col1, col2 = st.sidebar.columns(2)
 
     with col1:
-        if st.button("⚙️ Settings", width='stretch'):
+        if st.button(":material/settings: Settings", width='stretch'):
             st.session_state.show_settings = True
 
     with col2:
-        if st.button("🚪 Logout", width='stretch'):
+        if st.button(":material/logout: Logout", width='stretch'):
             logout()
 
 
 def render_settings_page():
     """Render user settings page."""
-    st.title("⚙️ Account Settings")
+    st.title(":material/settings: Account Settings")
     st.markdown("---")
 
     # Account info
@@ -154,7 +154,7 @@ def render_settings_page():
     st.markdown("---")
 
     # Back button
-    if st.button("← Back to Routes"):
+    if st.button(":material/first_page: Back to Routes"):
         st.session_state.show_settings = False
         st.rerun()
 
