@@ -42,8 +42,7 @@ def render_sidebar_filters(db):
     _render_filter_header()
     
     selected_area = _render_area_filter(db)
-    _handle_area_discipline_switch(db, selected_area)
-    
+
     grade_operation, selected_grade = _render_grade_filters()
     selected_grade_system = _render_grade_system_filter()
     sandbaggers_choice = _render_sandbaggers_choice()
@@ -87,22 +86,6 @@ def _render_area_filter(db):
         st.session_state.selected_area = "All"
     
     return st.sidebar.selectbox("Area", area_options, key='selected_area')
-
-
-def _handle_area_discipline_switch(db, selected_area):
-    """Auto-switch discipline if area only has one discipline."""
-    if selected_area == "All":
-        return
-    
-    area_disciplines = []
-    for disc in ['Sportclimb', 'Boulder', 'Multipitch']:
-        df = db.get_filtered_routes(discipline=disc, area=selected_area)
-        if len(df) > 0:
-            area_disciplines.append(disc)
-    
-    if len(area_disciplines) == 1 and st.session_state.view != area_disciplines[0]:
-        st.session_state.view = area_disciplines[0]
-        st.rerun()
 
 
 def _render_grade_filters():
