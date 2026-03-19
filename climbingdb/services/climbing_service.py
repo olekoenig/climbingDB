@@ -130,7 +130,7 @@ class ClimbingService:
 
         # Eager load route and location
         if area or crag:
-            self._filter_query_for_location(query, area=area, crag=crag)
+            query = self._filter_query_for_location(query, area=area, crag=crag)
         else:
             query = query.options(
                 joinedload(Ascent.route).joinedload(Route.crag).joinedload(Crag.area)
@@ -187,7 +187,7 @@ class ClimbingService:
         query = self._base_query().filter(Ascent.is_project == True)
 
         if area or crag:
-            self._filter_query_for_location(query, area=area, crag=crag)
+            query = self._filter_query_for_location(query, area=area, crag=crag)
 
         ascents = query.order_by(Ascent.ole_grade.asc()).all()
         return self._ascents_to_dataframe(ascents)
