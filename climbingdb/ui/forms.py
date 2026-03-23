@@ -32,80 +32,23 @@ def render_add_route_form(db, discipline):
 
         grade_system = st.selectbox("Grading System", grade_systems, key="add_grade_system")
 
+        # Multipitch length/num_pitches outside form for interactivity
+        num_pitches = None
+        if discipline == "Multipitch":
+            default_pitches = len(existing_route.pitches) if existing_route and existing_route.pitches else 3
+            num_pitches = st.number_input("Number of Pitches", min_value=1, step=1,
+                                          value=int(default_pitches), key="add_num_pitches")
+
         with st.form("add_route_form", clear_on_submit=True):
-            route_data = _render_route_fields(discipline, grade_system, existing_route=existing_route)
+            # Get route-specific data; num_pitches needs to be passed because it's non-interactive
+            # once in the form, and we want the number of pitches to be set correctly
+            route_data = _render_route_fields(discipline, grade_system, existing_route=existing_route,
+                                              num_pitches=num_pitches)
 
             submitted = st.form_submit_button(f"Add {discipline}", type="primary", width='stretch')
 
             if submitted:
                 _handle_form_submission(db, discipline, name, country, area, crag, route_data)
-
-
-def _render_route_fields(discipline, grade_system, existing_route=None):
-    """Render form fields for route details."""
-    grade_options = get_grade_options(grade_system)
-
-    # Auto-populate grade from existing route
-    default_grade_idx = 0
-    if existing_route and existing_route.consensus_grade in grade_options:
-        default_grade_idx = grade_options.index(existing_route.consensus_grade)
-
-    style_options = get_style_options(discipline)
-    shortnote_options = get_shortnote_options(discipline)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        grade = st.selectbox("Grade", grade_options, index=default_grade_idx)
-        style = st.selectbox("Style", [""] + style_options) if discipline != "Projects" else None
-        stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], index=0)
-
-    with col2:
-        shortnote = st.multiselect("Short Note", shortnote_options)
-        climb_date = st.date_input("Date", value=date.today()) if discipline != "Projects" else None
-        col_proj, col_mile = st.columns(2)
-        with col_proj:
-            is_project = st.checkbox("Project")
-        with col_mile:
-            is_milestone = st.checkbox("Milestone")
-
-    col_lat, col_lon = st.columns(2)
-    default_lat = float(existing_route.latitude) if existing_route and existing_route.latitude else 0.0
-    default_lon = float(existing_route.longitude) if existing_route and existing_route.longitude else 0.0
-    with col_lat:
-        latitude = st.number_input("Latitude", format="%.6f", value=default_lat, help="GPS coordinate")
-    with col_lon:
-        longitude = st.number_input("Longitude", format="%.6f", value=default_lon, help="GPS coordinate")
-
-    # Reset coordinates such that not all routes where this was unpopulated are actually at GPS=0/0
-    latitude = latitude if latitude != 0.0 else None
-    longitude = longitude if longitude != 0.0 else None
-
-    notes = st.text_area("Notes", placeholder="Detailed description...")
-    gear = st.text_input("Gear", placeholder="e.g., 10 quickdraws, cams #0.5-3") if discipline != "Boulder" else None
-
-    ernsthaftigkeit = pitches = length = ascent_time = None
-    if discipline == "Multipitch":
-        ernsthaftigkeit, ascent_time, length, pitches = _render_multipitch_fields(
-            grade_options, style_options, shortnote_options, existing_route=existing_route
-        )
-
-    return {
-        'grade': grade,
-        'shortnote': ', '.join(shortnote) if shortnote else None,
-        'style': style,
-        'stars': stars,
-        'climb_date': climb_date,
-        'is_project': is_project,
-        'is_milestone': is_milestone,
-        'notes': notes,
-        'gear': gear,
-        'latitude': latitude,
-        'longitude': longitude,
-        'ernsthaftigkeit': ernsthaftigkeit,
-        'pitches': pitches,
-        'length': length,
-        'ascent_time': ascent_time
-    }
 
 
 def render_edit_delete_form(db, routes_df):
@@ -136,6 +79,74 @@ def render_edit_delete_form(db, routes_df):
 
         with tab2:
             _render_delete_confirmation(db, ascent)
+
+
+def _render_route_fields(discipline, grade_system, existing_route=None, num_pitches=None):
+    """Render form fields for route details."""
+    grade_options = get_grade_options(grade_system)
+
+    # Auto-populate grade from existing route
+    default_grade_idx = 0
+    if existing_route and existing_route.consensus_grade in grade_options:
+        default_grade_idx = grade_options.index(existing_route.consensus_grade)
+
+    style_options = get_style_options(discipline)
+    shortnote_options = get_shortnote_options(discipline)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        grade = st.selectbox("Grade", grade_options, index=default_grade_idx)
+        style = st.selectbox("Style", [""] + style_options) if discipline != "Projects" else None
+        stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], index=0)
+
+    with col2:
+        shortnote = st.multiselect("Short Note", shortnote_options)
+        climb_date = st.date_input("Date", value=date.today()) if discipline != "Projects" else None
+        col_proj, col_mile = st.columns(2)
+        with col_proj:
+            default_is_project = False if discipline != "Projects" else True
+            is_project = st.checkbox("Project", value=default_is_project)
+        with col_mile:
+            is_milestone = st.checkbox("Milestone")
+
+    col_lat, col_lon = st.columns(2)
+    default_lat = float(existing_route.latitude) if existing_route and existing_route.latitude else 0.0
+    default_lon = float(existing_route.longitude) if existing_route and existing_route.longitude else 0.0
+    with col_lat:
+        latitude = st.number_input("Latitude", format="%.6f", value=default_lat, help="GPS coordinate")
+    with col_lon:
+        longitude = st.number_input("Longitude", format="%.6f", value=default_lon, help="GPS coordinate")
+
+    # Reset coordinates such that not all routes where this was unpopulated are actually at GPS=0/0
+    latitude = latitude if latitude != 0.0 else None
+    longitude = longitude if longitude != 0.0 else None
+
+    notes = st.text_area("Notes", placeholder="Detailed description...")
+    gear = st.text_input("Gear", placeholder="e.g., 10 quickdraws, cams #0.5-3") if discipline != "Boulder" else None
+
+    ernsthaftigkeit = pitches = length = ascent_time = None
+    if discipline == "Multipitch":
+        ernsthaftigkeit, ascent_time, length, pitches = _render_multipitch_fields(
+            grade_options, style_options, shortnote_options, existing_route=existing_route, num_pitches=num_pitches
+        )
+
+    return {
+        'grade': grade,
+        'shortnote': ', '.join(shortnote) if shortnote else None,
+        'style': style,
+        'stars': stars,
+        'climb_date': climb_date,
+        'is_project': is_project,
+        'is_milestone': is_milestone,
+        'notes': notes,
+        'gear': gear,
+        'latitude': latitude,
+        'longitude': longitude,
+        'ernsthaftigkeit': ernsthaftigkeit,
+        'pitches': pitches,
+        'length': length,
+        'ascent_time': ascent_time
+    }
 
 
 def _render_edit_form(db, ascent):
@@ -313,15 +324,11 @@ def _render_delete_confirmation(db, ascent):
         st.markdown("")
 
 
-def _render_multipitch_fields(grade_options, style_options, shortnote_options, existing_route=None):
+def _render_multipitch_fields(grade_options, style_options, shortnote_options,
+                              existing_route=None, num_pitches=None):
     """Render multipitch fields with full pitch details."""
-    col_len, col_pitches = st.columns(2)
-    with col_len:
-        default_length = int(existing_route.length) if existing_route and existing_route.length else 0
-        length = st.number_input("Total Length (m)", min_value=0, step=10, value=default_length)
-    with col_pitches:
-        default_pitches = len(existing_route.pitches) if existing_route and existing_route.pitches else 3
-        num_pitches = st.number_input("Number of Pitches", min_value=1, step=1, value=default_pitches)
+    default_length = int(existing_route.length) if existing_route and existing_route.length else 0
+    length = st.number_input("Total Length (m)", min_value=0, step=10, value=default_length)
 
     col_ernst, col_time = st.columns(2)
     with col_ernst:
