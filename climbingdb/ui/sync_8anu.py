@@ -141,7 +141,7 @@ def _run_import(uploaded_file, user_id, dry_run=False):
             message = f":material/check: Preview: {imported} ascents would be imported"
         else:
             message = f":material/check: Successfully imported {imported} ascents!"
-            st.cache_resource.clear()
+            #st.cache_resource.clear()
 
         if skipped > 0:
             st.warning(f":material/warning: {skipped} ascents skipped")

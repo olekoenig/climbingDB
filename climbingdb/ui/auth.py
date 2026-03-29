@@ -49,8 +49,7 @@ def render_login_form():
             user = auth.authenticate_user(username, password)
 
             if user:
-                # Set session state and clear cache
-                st.cache_resource.clear()
+                #st.cache_resource.clear()
                 st.session_state.authenticated = True
                 st.session_state.user_id = user.id
                 st.session_state.username = user.username
@@ -193,8 +192,7 @@ def render_settings_page():
 
 
 def logout():
-    # Clear cache to prevent stale data
-    st.cache_resource.clear()
+    #st.cache_resource.clear()
 
     # Clear all session state
     for key in list(st.session_state.keys()):

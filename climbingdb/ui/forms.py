@@ -117,7 +117,7 @@ def _handle_add_route_form_submission(db, discipline, name, country, area, crag,
         )
 
         st.success(f":material/check: Successfully added: {ascent.route.name} ({ascent.grade})")
-        st.cache_resource.clear()
+        #st.cache_resource.clear()
         st.rerun()
 
     except ValueError as e:

@@ -26,9 +26,8 @@ from climbingdb.ui.auth import (
 from climbingdb.config import REQUIRE_AUTH
 
 
-@st.cache_resource
+#@st.cache_resource
 def load_database(_user_id):
-    """Load and cache the climbing database."""
     return ClimbingService(user_id=_user_id)
 
 
@@ -61,8 +60,8 @@ def main():
         user_id = 1
         st.info(":material/co_present: Demo Mode - Viewing Lauchinger's climbing logbook")
 
-    if not st.session_state.get('authenticated', False):
-        st.cache_resource.clear()
+    #if not st.session_state.get('authenticated', False):
+    #    st.cache_resource.clear()
 
     db = load_database(user_id)
 
