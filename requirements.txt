@@ -6,3 +6,4 @@ datetime
 psycopg2-binary
 streamlit-authenticator
 bcrypt
+country_converter

@@ -6,6 +6,8 @@ DATADIR = "data/"
 DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{DATADIR}climbing.db')
 REQUIRE_AUTH = os.getenv('REQUIRE_AUTH', 'true').lower() == 'true'
 
+EIGHTANU_EXPORT_URL = "https://www.8a.nu/api/unification/ascent/v1/web/ascents/export-csv"
+
 # Old setup with CSV-based data
 CRAGS_CSV_FILE = DATADIR + "crags.csv"
 ROUTES_CSV_FILE = DATADIR + "routes.csv"
