@@ -49,7 +49,8 @@ def render_login_form():
             user = auth.authenticate_user(username, password)
 
             if user:
-                # Set session state
+                # Set session state and clear cache
+                st.cache_resource.clear()
                 st.session_state.authenticated = True
                 st.session_state.user_id = user.id
                 st.session_state.username = user.username

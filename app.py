@@ -61,6 +61,9 @@ def main():
         user_id = 1
         st.info(":material/co_present: Demo Mode - Viewing Lauchinger's climbing logbook")
 
+    if not st.session_state.get('authenticated', False):
+        st.cache_resource.clear()
+
     db = load_database(user_id)
 
     # Check if showing settings page
