@@ -27,20 +27,12 @@ def render_add_route_form(db, discipline):
         existing_route = get_existing_route_data(db, name, crag, discipline)
 
         grade_systems = get_grade_system_options(discipline)
-        if existing_route:
-            default_grade_system = Grade(existing_route.consensus_grade).get_scale()
-            if st.session_state.get('last_selected_route') != existing_route.name:
-                st.session_state['add_grade_system'] = default_grade_system
-                st.session_state['last_selected_route'] = existing_route.name
-
         grade_system = st.selectbox("Grading System", grade_systems, key="add_grade_system")
 
-        # Multipitch length/num_pitches outside form for interactivity
+        # Multipitch num_pitches needs to be outside form for interactivity
         num_pitches = None
         if discipline == "Multipitch":
-            default_pitches = len(existing_route.pitches) if existing_route and existing_route.pitches else 3
-            num_pitches = st.number_input("Number of Pitches", min_value=1, step=1,
-                                          value=int(default_pitches), key="add_num_pitches")
+            num_pitches = st.number_input("Number of Pitches", min_value=1, step=1, key="add_num_pitches")
 
         with st.form("add_route_form", clear_on_submit=True):
             # Get route-specific data; num_pitches needs to be passed because it's non-interactive

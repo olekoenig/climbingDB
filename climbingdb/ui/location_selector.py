@@ -5,6 +5,7 @@ Location selection widgets with autocomplete and filtering.
 import streamlit as st
 from sqlalchemy import and_
 from climbingdb.models import Country, Area, Crag, Route
+from climbingdb.grade import Grade
 
 
 def render_location_selector(db, discipline):
@@ -117,5 +118,17 @@ def get_existing_route_data(db, route_name, crag_name, discipline):
         Crag.name == crag_name,
         Route.discipline == discipline
     ).first()
+
+    if not route:
+        return None
+
+    # Need to set these parameters into the session state such that the form
+    # can access it later for auto-population.
+    default_grade_system = Grade(route.consensus_grade).get_scale()
+    if st.session_state.get('last_selected_route') != route.name:
+        st.session_state['add_grade_system'] = default_grade_system
+        st.session_state['last_selected_route'] = route.name
+        if discipline == "Multipitch" and route.pitches:
+            st.session_state['add_num_pitches'] = len(route.pitches)
 
     return route
