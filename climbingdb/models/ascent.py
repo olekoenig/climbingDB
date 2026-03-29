@@ -12,9 +12,9 @@ class Ascent(Base, ClimbableMixin):
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
     route_id = Column(Integer, ForeignKey('routes.id'), nullable=False, index=True)
 
-    date = Column(Date)
-    is_project = Column(Boolean)
-    is_milestone = Column(Boolean)
+    date = Column(Date, index=True)
+    is_project = Column(Boolean, index=True, default=False)
+    is_milestone = Column(Boolean, index=True, default=False)
 
     personal_photo_urls = Column(JSON)
 

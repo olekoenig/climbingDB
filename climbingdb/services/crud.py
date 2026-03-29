@@ -79,6 +79,9 @@ def get_or_create_route(session, name, discipline, crag, grade,
         Route.discipline == discipline
     ).first()
 
+    if route and verbose:
+        print(f"  Route {name} already exists")
+
     if not route:
         route = Route(
             name=name,
@@ -103,6 +106,16 @@ def create_ascent(session, user_id, route, grade, style=None, date=None,
                   is_project=False, is_milestone=False,
                   ascent_time=None):
     """Create user's ascent of a route."""
+    # Check for duplicate: same user, route, and date
+    existing = session.query(Ascent).filter(
+        Ascent.user_id == user_id,
+        Ascent.route_id == route.id,
+        Ascent.date == date
+    ).first()
+
+    if existing:
+        return existing
+
     ascent = Ascent(
         user_id=user_id,
         route=route,

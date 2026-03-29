@@ -15,7 +15,7 @@ class Route(Base):
     discipline = Column(String(20), nullable=False, index=True)  # 'Sportclimb', 'Boulder', 'Multipitch'
 
     consensus_grade = Column(String)  # Average grade
-    consensus_ole_grade = Column(Float)
+    consensus_ole_grade = Column(Float, index=True)
     consensus_stars = Column(Float)
 
     first_ascent = Column(Date)

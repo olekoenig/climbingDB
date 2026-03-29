@@ -8,8 +8,8 @@ Run as:
 import pandas as pd
 import getpass
 from datetime import datetime
-import bcrypt
 
+from climbingdb.services.auth_service import AuthService
 from climbingdb.models import SessionLocal, init_db, drop_all
 from climbingdb.models import Country, Area, Crag, Route, User, Pitch, Ascent, PitchAscent
 from climbingdb.config import ROUTES_CSV_FILE, BOULDERS_CSV_FILE, MULTIPITCHES_CSV_FILE
@@ -82,26 +82,19 @@ def _get_ascent_fields(row):
 
 
 def _create_default_user(session, username, email, password):
-    """Create default user for imported routes."""
-    existing_user = session.query(User).filter(User.username == username).first()
-    if existing_user:
-        print(f"  ⚠️ User '{username}' already exists")
-        use_existing = input(f"  Use existing user? (yes/no): ")
-        if use_existing.lower() == 'yes':
-            return existing_user
-        raise ValueError("User already exists")
+    """Create default user via AuthService."""
+    auth = AuthService()
 
-    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-    user = User(
+    success, message, user = auth.create_user(
         username=username,
-        email=email,
-        password_hash=password_hash
+        password=password,
+        email=email
     )
 
-    session.add(user)
-    session.commit()
+    if not success:
+        raise ValueError(message)
 
+    print(f"  SUCCESS: {message} (ID: {user.id})")
     return user
 
 

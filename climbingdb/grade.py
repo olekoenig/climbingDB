@@ -189,7 +189,9 @@ Vermin.update(V_slashes)
 Vermin.update({'VB': -0.5, 'V0-': -0.25, 'V0+': 0.25})  # 'L': 0
 
 Font = {
-    '4': 0,
+    '4A': 0.25,
+    '4B': 0.5,
+    '4C': 0.75,
     '5A': 1,
     '5B': 1.5,
     '5B+': 1.75,
@@ -299,7 +301,7 @@ class Grade:
             return conversions[scale][self.value.split(" trav")[0]] - 1
             
         if scale == "undetermined" or self.value not in conversions[scale]:
-            # print("The conversion factor", self.value, "is not in the dictonary, setting grade to 0")
+            # print("The conversion factor", self.value, "is not in the dictionary, setting grade to 0")
             return 0
 
         return conversions[scale][self.value]
