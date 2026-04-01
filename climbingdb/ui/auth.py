@@ -10,6 +10,11 @@ from climbingdb.ui.sync_8anu import (
     submit_8anu_upload,
     show_preview_of_8anu_import
 )
+from climbingdb.ui.settings import (
+    render_delete_account,
+    render_password_settings,
+    render_delete_all_ascents
+)
 
 
 def render_login_page():
@@ -118,39 +123,13 @@ def render_user_menu():
             logout()
 
 
-def _render_password_settings(auth):
-    st.subheader("Change Password")
 
-    with st.form("change_password_form"):
-        old_password = st.text_input("Current Password", type="password")
-        new_password = st.text_input("New Password", type="password")
-        confirm_new_password = st.text_input("Confirm New Password", type="password")
-
-        submitted = st.form_submit_button("Change Password", type="primary")
-
-        if submitted:
-            if not old_password or not new_password or not confirm_new_password:
-                st.error("Please fill in all fields")
-            elif new_password != confirm_new_password:
-                st.error("New passwords don't match")
-            else:
-                success, message = auth.change_password(
-                    st.session_state.user_id,
-                    old_password,
-                    new_password
-                )
-
-                if success:
-                    st.success(message)
-                else:
-                    st.error(message)
 
 
 def render_settings_page():
     st.title(":material/settings: Account Settings")
     st.markdown("---")
 
-    # Account info
     st.subheader("Account Information")
     auth = AuthService()
     user = auth.get_user_by_id(st.session_state.user_id)
@@ -164,14 +143,14 @@ def render_settings_page():
 
     st.markdown("---")
 
-    tab1, tab2 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
+        ":material/sync: 8a.nu Sync",
         ":material/lock: Password",
-        ":material/sync: 8a.nu Sync"
+        ":material/delete_sweep: Delete Ascents",
+        ":material/person_remove: Delete Account"
     ])
 
     with tab1:
-        _render_password_settings(auth)
-    with tab2:
         uploaded_file = get_8anu_csv_file()
         if uploaded_file:
             show_preview_of_8anu_import(uploaded_file)
@@ -183,7 +162,12 @@ def render_settings_page():
 
             if confirmed:
                 submit_8anu_upload(uploaded_file, st.session_state.user_id)
-
+    with tab2:
+        render_password_settings(auth)
+    with tab3:
+        render_delete_all_ascents(auth)
+    with tab4:
+        render_delete_account(auth)
     st.markdown("---")
 
     if st.button(":material/first_page: Back to Routes"):

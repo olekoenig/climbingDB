@@ -23,4 +23,4 @@ class Ascent(Base, ClimbableMixin):
 
     user = relationship("User", back_populates="ascents")
     route = relationship("Route", back_populates="ascents")
-    pitch_ascents = relationship("PitchAscent", back_populates="ascent")
+    pitch_ascents = relationship("PitchAscent", back_populates="ascent", cascade="all, delete-orphan")

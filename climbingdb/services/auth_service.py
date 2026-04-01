@@ -3,12 +3,10 @@ Authentication service for user management.
 """
 
 import bcrypt
-from climbingdb.models import SessionLocal, User
+from climbingdb.models import SessionLocal, User, Ascent
 
 
 class AuthService:
-    """Handle user authentication and management."""
-
     def __init__(self):
         self.session = SessionLocal()
 
@@ -21,12 +19,6 @@ class AuthService:
         return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     def authenticate_user(self, username, password):
-        """
-        Authenticate a user.
-
-        Returns:
-            User object if successful, None otherwise
-        """
         user = self.session.query(User).filter(User.username == username).first()
 
         if not user:
@@ -38,22 +30,18 @@ class AuthService:
         return None
 
     def create_user(self, username, password, email=None):
-        # Validation
         if len(username) < 3:
             return False, "Username must be at least 3 characters", None
 
-        # Check if username exists
         existing_user = self.session.query(User).filter(User.username == username).first()
         if existing_user:
             return False, "Username already exists", None
 
-        # Check if email exists
         if email:
             existing_email = self.session.query(User).filter(User.email == email).first()
             if existing_email:
                 return False, "Email already registered", None
 
-        # Create user
         user = User(
             username=username,
             password_hash=self.hash_password(password),
@@ -66,31 +54,42 @@ class AuthService:
         return True, "Account created successfully!", user
 
     def change_password(self, user_id, old_password, new_password):
-        """
-        Change a user's password.
-
-        Returns:
-            (success: bool, message: str)
-        """
         user = self.session.query(User).filter(User.id == user_id).first()
 
         if not user:
             return False, "User not found"
 
-        # Verify old password
         if user.password_hash != self.hash_password(old_password):
             return False, "Current password is incorrect"
 
-        # Update password
         user.password_hash = self.hash_password(new_password)
         self.session.commit()
 
         return True, "Password changed successfully!"
 
     def get_user_by_id(self, user_id):
-        """Get user by ID."""
         return self.session.query(User).filter(User.id == user_id).first()
 
     def get_user_by_username(self, username):
-        """Get user by username."""
         return self.session.query(User).filter(User.username == username).first()
+
+    def delete_all_ascents(self, user_id: int) -> int:
+        count = self.session.query(Ascent).filter(
+            Ascent.user_id == user_id
+        ).count()
+
+        self.session.query(Ascent).filter(
+            Ascent.user_id == user_id
+        ).delete()
+
+        self.session.commit()
+        return count
+
+    def delete_account(self, user_id: int) -> None:
+        user = self.session.query(User).filter(User.id == user_id).first()
+
+        if not user:
+            raise ValueError("User not found")
+
+        self.session.delete(user)  # Cascade deletes ascents + pitch_ascents
+        self.session.commit()
