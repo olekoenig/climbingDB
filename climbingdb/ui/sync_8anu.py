@@ -85,7 +85,8 @@ def show_preview_of_8anu_import(uploaded_file):
         'Date': r['date'] or '',
         'Stars': r['stars'],
         'Short Note': r['shortnote'] or '',
-        'Notes': r['notes'] or ''
+        'Notes': r['notes'] or '',
+        'Project': r['is_project']
     } for r in parsed_rows])
 
     st.markdown(f"### Preview ({len(preview_df)} ascents will be imported)")
@@ -105,7 +106,7 @@ def show_preview_of_8anu_import(uploaded_file):
             "Date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
             "Stars": st.column_config.NumberColumn("Stars", width="small"),
             "Short Note": st.column_config.TextColumn("Short Note", width="small"),
-            "Notes": st.column_config.TextColumn("Notes")
+            "Project": st.column_config.CheckboxColumn("Project", width="small")
         }
     )
 

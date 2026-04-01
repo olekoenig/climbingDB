@@ -85,12 +85,17 @@ def _parse_style(row):
 def _parse_shortnote(row):
     perceived_hardness = row.get('perceived_hardness', ''),
     sits = row.get('sits', '')
+    tries = row.get('tries', '')
+    type_str = row.get('type', '')
 
     notes = []
 
     hardness = PERCEIVED_HARDNESS_MAP.get(str(perceived_hardness).lower())
     if hardness:
         notes.append(hardness)
+
+    if tries != "null" and tries != '0' and type_str != "f" and type_str != "os":
+        notes.append("{}. Go".format(tries.strip()))
 
     # is this column a sit start?
     if str(sits).lower() not in ('null', '', ''):
@@ -114,43 +119,48 @@ def _parse_country(row):
         return COCO.convert(country_code, to="name_short")
 
 
-def _parse_crag(row):
-    crag_name = row['location_name'].strip()
-    sector_name = row['sector_name'].strip()
+def _parse_crag(location_name, sector_name):
+    crag_name = location_name
 
-    if not crag_name or crag_name in ('null', ''):
+    if not location_name or location_name in ('null', ''):
         return "Unknown"
 
-    if sector_name != "Unknown Sector" and sector_name != crag_name:
-        crag_name = f"{crag_name} ({sector_name})"
+    if sector_name != "Unknown Sector" and sector_name.lower() != location_name.lower():
+        crag_name = f"{location_name} ({sector_name})"
 
     return crag_name
 
 
-def _parse_area(row, crag_to_area_map=None):
+def _parse_area_and_crag(row, crag_to_area_map=None):
     area_name = row['area_name'].strip()
+    if area_name not in ('null', ''):
+        print("Area information is available but unused!")
 
-    if area_name and area_name not in ('null', ''):
-        return area_name
+    location_name = row['location_name'].strip()
+    sector_name = row['sector_name'].strip()
 
     if crag_to_area_map:
-        # Area name is often empty - search in database if crag is found
-        crag_name = row['location_name'].strip()
-        area_name = crag_to_area_map.get(crag_name, 'Unknown')
-        return area_name
+        all_areas = [v for _, v in crag_to_area_map.items()]
 
-    return "Unknown"
+        if location_name in all_areas:
+            area_name = location_name
+            crag_name = sector_name
+        else:
+            area_name = crag_to_area_map.get(location_name, 'Unknown')
+            crag_name = _parse_crag(location_name, sector_name)
+    else:
+        area_name = "Unknown"
+        crag_name = _parse_crag(location_name, sector_name)
+
+    return area_name, crag_name
 
 
 def _parse_is_project(row):
-    project_str = row['project']
-    try:
-        return int(float(project_str)) == 1
-    except (ValueError, TypeError):
-        return False
+    return row['type'].strip().lower() == "go"
 
 
 def _parse_row(row, crag_to_area_map=None):
+    area_name, crag_name = _parse_area_and_crag(row, crag_to_area_map)
     return {
         'name': row['name'].strip('"'),
         'discipline': _parse_discipline(row),
@@ -162,8 +172,8 @@ def _parse_row(row, crag_to_area_map=None):
         'shortnote': _parse_shortnote(row),
         'notes': _parse_notes(row),
         'country_name': _parse_country(row),
-        'area_name': _parse_area(row, crag_to_area_map),
-        'crag_name': _parse_crag(row)
+        'area_name': area_name,
+        'crag_name': crag_name
     }
 
 
