@@ -24,23 +24,44 @@ class AuthService:
         if not user:
             return None
 
-        # Check password
         if bcrypt.checkpw(password.encode(), user.password_hash.encode()):
             return user
         return None
 
-    def create_user(self, username, password, email=None):
+    @staticmethod
+    def _validate_password(password):
+        errors = []
+        if len(password) < 8:
+            errors.append("Password needs at least 8 characters.")
+        #if not any(c.isupper() for c in password):
+        #    errors.append("Password needs at least one uppercase letter.")
+        #if not any(c.isdigit() for c in password):
+        #    errors.append("Password needs at least one number.")
+        return errors
+
+    def _validate_username(self, username):
+        errors = []
         if len(username) < 3:
-            return False, "Username must be at least 3 characters", None
+            errors.append("Username must be at least 3 characters.")
+        if self.session.query(User).filter(User.username == username).first():
+            errors.append("Username already exists.")
+        return errors
 
-        existing_user = self.session.query(User).filter(User.username == username).first()
-        if existing_user:
-            return False, "Username already exists", None
+    def _validate_email(self, email):
+        errors = []
+        if self.session.query(User).filter(User.email == email).first():
+            errors.append("Email already registered.")
+        return errors
 
+    def create_user(self, username, password, email=None):
+        errors = []
+        errors.extend(self._validate_username(username))
+        errors.extend(self._validate_password(password))
         if email:
-            existing_email = self.session.query(User).filter(User.email == email).first()
-            if existing_email:
-                return False, "Email already registered", None
+            errors.extend(self._validate_email(email))
+
+        if errors:
+            return False, errors, None
 
         user = User(
             username=username,
@@ -51,21 +72,24 @@ class AuthService:
         self.session.add(user)
         self.session.commit()
 
-        return True, "Account created successfully!", user
+        return True, [], user
 
     def change_password(self, user_id, old_password, new_password):
         user = self.session.query(User).filter(User.id == user_id).first()
-
         if not user:
-            return False, "User not found"
+            return False, ["User not found."]
 
-        if user.password_hash != self.hash_password(old_password):
-            return False, "Current password is incorrect"
+        if not bcrypt.checkpw(old_password.encode(), user.password_hash.encode()):
+            return False, ["Current password is incorrect."]
+
+        errors = self._validate_password(new_password)
+        if errors:
+            return False, errors
 
         user.password_hash = self.hash_password(new_password)
         self.session.commit()
 
-        return True, "Password changed successfully!"
+        return True, []
 
     def get_user_by_id(self, user_id):
         return self.session.query(User).filter(User.id == user_id).first()

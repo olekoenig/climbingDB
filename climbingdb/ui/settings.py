@@ -17,16 +17,14 @@ def render_password_settings(auth):
             elif new_password != confirm_new_password:
                 st.error("New passwords don't match")
             else:
-                success, message = auth.change_password(
-                    st.session_state.user_id,
-                    old_password,
-                    new_password
-                )
+                success, errors = auth.change_password(st.session_state.user_id, old_password, new_password)
 
-                if success:
-                    st.success(message)
-                else:
-                    st.error(message)
+                if not success:
+                    for error in errors:
+                        st.error(error)
+                    return
+
+                st.success("Password changed!")
 
 
 def render_delete_all_ascents(auth):

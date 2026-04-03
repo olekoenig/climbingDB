@@ -5,7 +5,7 @@ Helper functions for form rendering.
 import streamlit as st
 from datetime import date
 
-from climbingdb.grade import French, UIAA, YDS, Elbsandstein, Vermin, Font
+from climbingdb.grade import ALL_GRADE_SYSTEMS
 
 
 def get_grade_system_options(discipline):
@@ -29,7 +29,9 @@ def get_style_options(discipline):
 
 def get_grade_options(grade_system):
     """Get sorted grade options for a grading system."""
-    grade_dict = eval(grade_system)  # French, UIAA, etc.
+    if grade_system not in ALL_GRADE_SYSTEMS:
+        raise ValueError(f"Unknown grade system: {grade_system}")
+    grade_dict = ALL_GRADE_SYSTEMS[grade_system]  # French, UIAA, etc.
     return [""] + [k for k, v in sorted(grade_dict.items(), key=lambda x: x[1])]
 
 

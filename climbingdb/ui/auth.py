@@ -88,13 +88,14 @@ def render_signup_form():
             return
 
         auth = AuthService()
-        success, message_user, user = auth.create_user(new_username, new_password, new_email)
+        success, errors, user = auth.create_user(new_username, new_password, new_email)
 
-        if success:
-            st.success(message_user)
-        else:
-            st.error(message_user)
+        if not success:
+            for error in errors:
+                st.error(error)
             return
+
+        st.success("Account created!")
 
         if uploaded_file:
             submit_8anu_upload(uploaded_file, user.id)
@@ -121,9 +122,6 @@ def render_user_menu():
     with col2:
         if st.button(":material/logout: Logout", width='stretch'):
             logout()
-
-
-
 
 
 def render_settings_page():

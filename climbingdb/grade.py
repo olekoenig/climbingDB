@@ -1,6 +1,6 @@
 import re
 
-# The scale is transformed to an arbitrary scale which is based on the austrialian scale
+# The scale is transformed to an arbitrary scale which is based on the Australian scale
 # but since it is not continuous I introduced decimals.
 
 UIAA = {
@@ -239,6 +239,16 @@ Ole_to_YDS = {v: k for k, v in YDS.items()}
 Ole_to_Elbsandstein = {v: k for k, v in Elbsandstein.items()}
 Ole_to_Vermin = {v: k for k, v in Vermin.items()}
 Ole_to_Font = {v: k for k, v in Font.items()}
+
+ALL_GRADE_SYSTEMS = {
+    'French': French,
+    'UIAA': UIAA,
+    'YDS': YDS,
+    'Elbsandstein': Elbsandstein,
+    'Vermin': Vermin,
+    'Font': Font
+}
+
 
 class Grade:
     def __init__(self, value):
