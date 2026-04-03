@@ -3,3 +3,5 @@ __pycache__/
 *.py~
 old/
 *.pdf
+.env
+.streamlit/secrets.toml

@@ -1,0 +1,35 @@
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: climbing_db
+    environment:
+      POSTGRES_USER: climbing_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: climbing
+    ports:
+      - "5432:5432"      # host:container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U climbing_user -d climbing"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .             # Build from Dockerfile in current directory
+    container_name: climbing_app
+    ports:
+      - "8501:8501"      # host:container
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REQUIRE_AUTH: ${REQUIRE_AUTH}
+    depends_on:
+      db:
+        condition: service_healthy  # Wait for DB to be ready
+    volumes:
+      - .:/app           # Mount code for development (hot reload)
+
+volumes:
+  postgres_data:         # Named volume - persists between restarts
