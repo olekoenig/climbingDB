@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload, contains_eager
 import pandas as pd
 from datetime import datetime
 
-from climbingdb.models import SessionLocal, Route, Crag, Area, Ascent, PitchAscent
+from climbingdb.models import SessionLocal, Route, Crag, Area, Country, Ascent, PitchAscent
 from climbingdb.grade import Grade
 from climbingdb.services.crud import (
     get_or_create_location,
@@ -298,32 +298,59 @@ class ClimbingService:
         """Get universal route by ID."""
         return self.session.query(Route).filter(Route.id == route_id).first()
 
-
     def get_statistics(self):
-        """Get user statistics."""
-        base_query = self._base_query()
-        stats = {
-            'total_routes': base_query.filter(Ascent.is_project == False).count(),
-            'total_projects': base_query.filter(Ascent.is_project == True).count(),
-            'sportclimbs': base_query.filter(
-                and_(Route.discipline == "Sportclimb", Ascent.is_project == False)
-            ).count(),
-            'boulders': base_query.filter(
-                and_(Route.discipline == "Boulder", Ascent.is_project == False)
-            ).count(),
-            'multipitches': base_query.filter(
-                and_(Route.discipline == "Multipitch", Ascent.is_project == False)
-            ).count(),
+        """Get overall statistics for the user."""
+        base = self._base_query()
+        ascents = base.filter(Ascent.is_project == False)
+        ascents_with_routes = ascents.join(Ascent.route)
+        sportclimbs = ascents_with_routes.filter(Route.discipline == "Sportclimb")
+        multipitches = ascents_with_routes.filter(Route.discipline == "Multipitch")
+        boulders = ascents_with_routes.filter(Route.discipline == "Boulder")
+
+        total_ascents = ascents.count()
+        hardest_rp = sportclimbs.order_by(Ascent.ole_grade.desc()).first()
+        hardest_os = sportclimbs.filter(Ascent.style == "o.s.").order_by(Ascent.ole_grade.desc()).first()
+        hardest_flash = sportclimbs.filter(Ascent.style == "F").order_by(Ascent.ole_grade.desc()).first()
+        hardest_boulder = boulders.order_by(Ascent.ole_grade.desc()).first()
+        hardest_boulder_flash = boulders.filter(Ascent.style == "F").order_by(Ascent.ole_grade.desc()).first()
+        hardest_mp = multipitches.order_by(Ascent.ole_grade.desc()).first()
+        hardest_mp_os = multipitches.filter(Ascent.style == "o.s.").order_by(Ascent.ole_grade.desc()).first()
+
+        # Calculate some metrics for the achievement badges
+        threshold_8a_sport = Grade("8a").conv_grade()
+        threshold_8A_boulder = Grade("8A").conv_grade()
+
+        routes_8a_plus = sportclimbs.filter(Ascent.ole_grade >= threshold_8a_sport).count()
+        ascents_with_notes = ascents.filter(Ascent.notes != None, Ascent.notes != "").count()
+        comment_ratio = ascents_with_notes / total_ascents if total_ascents > 0 else 0
+
+        return {
+            'total_routes': ascents.count(),
+            'sportclimbs': sportclimbs.count(),
+            'boulders': boulders.count(),
+            'multipitches': multipitches.count(),
+            'total_projects': base.filter(Ascent.is_project == True).count(),
+            'total_areas': self.session.query(Area).count(),
+            'total_countries': self.session.query(Country).count(),
+
+            'hardest_redpoint_grade': hardest_rp.grade if hardest_rp else 0,
+            'hardest_redpoint_name': hardest_rp.route.name if hardest_rp else None,
+            'hardest_onsight_grade': hardest_os.grade if hardest_os else 0,
+            'hardest_onsight_name': hardest_os.route.name if hardest_os else None,
+            'hardest_flash_grade': hardest_flash.grade if hardest_flash else 0,
+            'hardest_flash_name': hardest_flash.route.name if hardest_flash else None,
+            'hardest_boulder_grade': hardest_boulder.grade if hardest_boulder else 0,
+            'hardest_boulder_name': hardest_boulder.route.name if hardest_boulder else None,
+            'hardest_boulder_flash_grade': hardest_boulder_flash.grade if hardest_boulder_flash else 0,
+            'hardest_boulder_flash_name': hardest_boulder_flash.route.name if hardest_boulder_flash else None,
+            'hardest_multipitch_grade': hardest_mp.grade if hardest_mp else 0,
+            'hardest_multipitch_name': hardest_mp.route.name if hardest_mp else None,
+            'hardest_multipitch_onsight_grade': hardest_mp.grade if hardest_mp else 0,
+            'hardest_multipitch_onsight_name': hardest_mp.route.name if hardest_mp else None,
+
+            'routes_8a_plus_count': routes_8a_plus,
+            'comment_ratio': comment_ratio,
         }
-
-        # Get hardest ascent
-        hardest = base_query.filter(Ascent.is_project == False).order_by(Ascent.ole_grade.desc()).first()
-
-        if hardest:
-            stats['hardest_route'] = hardest.route.name
-            stats['hardest_grade'] = hardest.grade
-
-        return stats
 
 
 if __name__ == "__main__":
@@ -331,17 +358,17 @@ if __name__ == "__main__":
     db = ClimbingService()
 
     #print("\n=== Statistics ===")
-    #stats = db.get_statistics()
-    #for key, value in stats.items():
-    #    print(f"{key}: {value}")
+    stats = db.get_statistics()
+    for key, value in stats.items():
+        print(f"{key}: {value}")
 
     #print("\n=== Boulders ===")
     #boulders = db.get_boulders()
     #print(boulders[['name', 'grade', 'style', 'crag', 'date', 'stars']].head(10))
 
-    print("\n=== Test area filter ===")
-    routes = db.get_filtered_routes(discipline="Multipitch", crag="El Capitan")
-    print(routes)
+    #print("\n=== Test area filter ===")
+    #routes = db.get_filtered_routes(discipline="Multipitch", crag="El Capitan")
+    #print(routes)
 
     #print("\n=== Filtered (8a+ sport) ===")
     #routes = db.get_filtered_routes(discipline="Sportclimb", grade="8a", operation=">=")

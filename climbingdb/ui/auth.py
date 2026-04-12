@@ -15,6 +15,7 @@ from climbingdb.ui.settings import (
     render_password_settings,
     render_delete_all_ascents
 )
+from climbingdb.ui.achievements import render_achievements
 
 
 def render_login_page():
@@ -110,7 +111,9 @@ def render_user_menu():
         return
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown(f"### :material/account_circle: {st.session_state.username}")
+    st.sidebar.markdown(f"### :material/account_circle: {st.session_state.username}'s Profile")
+
+    render_achievements()
 
     col1, col2 = st.sidebar.columns(2)
 

@@ -2,6 +2,9 @@ Frontend:
 
 - tabs instead of buttons for navigation
 - add achievements batch:
+  - climbing the big 5 in Fontainebleau
+  - climbed a worlds first (add FA dates)
+  - climbed a Sharma route
   - SANDBAGGER/GRADE INFLATOR
   - AMOUNT xsxOF METERS CLIMBED IN ONE DAY
   - ROUTE MARATHON, in X Gebieten
