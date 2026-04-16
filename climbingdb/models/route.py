@@ -37,8 +37,8 @@ class Route(Base):
 
     # Relationships
     crag = relationship("Crag", back_populates="routes")
-    ascents = relationship("Ascent", back_populates="route")
-    pitches = relationship("Pitch", back_populates="route")
+    ascents = relationship("Ascent", back_populates="route", cascade="all, delete-orphan")
+    pitches = relationship("Pitch", back_populates="route", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Route(id={self.id}, name='{self.name}', grade='{self.consensus_grade}', discipline='{self.discipline}')>"
