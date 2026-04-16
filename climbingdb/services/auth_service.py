@@ -3,7 +3,7 @@ Authentication service for user management.
 """
 
 import bcrypt
-from climbingdb.models import SessionLocal, User, Ascent
+from climbingdb.models import SessionLocal, User, Ascent, PitchAscent
 
 
 class AuthService:
@@ -98,13 +98,24 @@ class AuthService:
         return self.session.query(User).filter(User.username == username).first()
 
     def delete_all_ascents(self, user_id: int) -> int:
+        # Get all ascent IDs for this user
+        ascent_ids = [
+            a.id for a in
+            self.session.query(Ascent.id).filter(Ascent.user_id == user_id).all()
+        ]
+
+        if not ascent_ids:
+            return 0
+
+        # Delete pitch ascents first (child records)
+        self.session.query(PitchAscent).filter(
+            PitchAscent.ascent_id.in_(ascent_ids)
+        ).delete(synchronize_session=False)
+
+        # Then delete ascents (parent records)
         count = self.session.query(Ascent).filter(
             Ascent.user_id == user_id
-        ).count()
-
-        self.session.query(Ascent).filter(
-            Ascent.user_id == user_id
-        ).delete()
+        ).delete(synchronize_session=False)
 
         self.session.commit()
         return count
