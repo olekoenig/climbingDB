@@ -121,28 +121,26 @@ def show_preview_of_8anu_import(uploaded_file):
 
 
 def submit_8anu_upload(uploaded_file, user_id):
+    """Run 8a.nu import with progress feedback."""
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    def progress_callback(current, total, message):
+        progress_bar.progress(current / total)
+        status_text.text(f"{message} ({current}/{total})")
+
     try:
-        success, message = _run_import(uploaded_file, user_id)
-        if success:
-            st.success(message)
-        else:
-            st.warning(f"Import failed: {message}")
+        with st.spinner("Importing..."):
+            imported, skipped, errors = import_8a_csv(
+                csv_file=uploaded_file,
+                user_id=user_id,
+                progress_callback=progress_callback
+            )
 
-    except Exception as e:
-        st.error(f":material/error: Could not read file: {e}")
-        st.info("Make sure you uploaded the correct CSV file from 8a.nu")
+        progress_bar.empty()
+        status_text.empty()
 
-
-def _run_import(uploaded_file, user_id, dry_run=False):
-    spinner_message = "Importing..." if not dry_run else "Previewing..."
-    with st.spinner(spinner_message):
-        imported, skipped, errors = import_8a_csv(csv_file=uploaded_file, user_id=user_id, dry_run=dry_run)
-
-        if dry_run:
-            message = f":material/check: Preview: {imported} ascents would be imported"
-        else:
-            message = f":material/check: Successfully imported {imported} ascents!"
-            #st.cache_resource.clear()
+        st.success(f":material/check: Successfully imported {imported} ascents!")
 
         if skipped > 0:
             st.warning(f":material/warning: {skipped} ascents skipped")
@@ -152,4 +150,7 @@ def _run_import(uploaded_file, user_id, dry_run=False):
                 for error in errors:
                     st.write(f"- {error}")
 
-        return True, message
+    except Exception as e:
+        progress_bar.empty()
+        status_text.empty()
+        st.error(f":material/error: Import failed: {e}")
