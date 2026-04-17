@@ -308,6 +308,19 @@ class ClimbingService:
         boulders = ascents_with_routes.filter(Route.discipline == "Boulder")
 
         total_ascents = ascents.count()
+        total_countries = self.session.query(Country).join(Area).join(Crag).join(Route).join(Ascent).filter(
+            Ascent.user_id == self.user_id,
+            Ascent.is_project == False
+        ).distinct().count()
+        total_areas = self.session.query(Area).join(Crag).join(Route).join(Ascent).filter(
+            Ascent.user_id == self.user_id,
+            Ascent.is_project == False
+        ).distinct().count()
+        total_crags = self.session.query(Crag).join(Route).join(Ascent).filter(
+            Ascent.user_id == self.user_id,
+            Ascent.is_project == False
+        ).distinct().count()
+
         hardest_rp = sportclimbs.order_by(Ascent.ole_grade.desc()).first()
         hardest_os = sportclimbs.filter(Ascent.style == "o.s.").order_by(Ascent.ole_grade.desc()).first()
         hardest_flash = sportclimbs.filter(Ascent.style == "F").order_by(Ascent.ole_grade.desc()).first()
@@ -321,6 +334,7 @@ class ClimbingService:
         threshold_8A_boulder = Grade("8A").conv_grade()
 
         routes_8a_plus = sportclimbs.filter(Ascent.ole_grade >= threshold_8a_sport).count()
+        boulders_8A_plus = sportclimbs.filter(Ascent.ole_grade >= threshold_8A_boulder).count()
         ascents_with_notes = ascents.filter(Ascent.notes != None, Ascent.notes != "").count()
         comment_ratio = ascents_with_notes / total_ascents if total_ascents > 0 else 0
 
@@ -330,8 +344,10 @@ class ClimbingService:
             'boulders': boulders.count(),
             'multipitches': multipitches.count(),
             'total_projects': base.filter(Ascent.is_project == True).count(),
-            'total_areas': self.session.query(Area).count(),
-            'total_countries': self.session.query(Country).count(),
+
+            'total_crags': total_crags,
+            'total_areas': total_areas,
+            'total_countries': total_countries,
 
             'hardest_redpoint_grade': hardest_rp.grade if hardest_rp else 0,
             'hardest_redpoint_name': hardest_rp.route.name if hardest_rp else None,
@@ -349,6 +365,7 @@ class ClimbingService:
             'hardest_multipitch_onsight_name': hardest_mp.route.name if hardest_mp else None,
 
             'routes_8a_plus_count': routes_8a_plus,
+            'boulders_8A_plus_count': boulders_8A_plus,
             'comment_ratio': comment_ratio,
         }
 

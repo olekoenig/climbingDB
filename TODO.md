@@ -2,15 +2,8 @@ Frontend:
 
 - tabs instead of buttons for navigation
 - add achievements batch:
-  - climbing the big 5 in Fontainebleau
   - climbed a worlds first (add FA dates)
   - climbed a Sharma route
-  - SANDBAGGER/GRADE INFLATOR
-  - AMOUNT xsxOF METERS CLIMBED IN ONE DAY
-  - ROUTE MARATHON, in X Gebieten
-  - 8a boulder
-  - Bleau parkour
-  - Kommentator
   - "most successful days"
 - stars -> visuell
 - cannot shift notes window when expanded
@@ -23,7 +16,6 @@ Frontend:
 - add route page
 - share profile button
 - display pitches of multipitch routes
-- fix pitches_data in edit_routes
 - Multipitches: Picture of wall uploadable, can mark the starting points/belays on the picture by clicking, put that into database
 - routes over time
 - integrate GPS, where to park, crag info

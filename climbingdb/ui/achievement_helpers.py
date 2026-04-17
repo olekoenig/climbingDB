@@ -77,3 +77,103 @@ def get_max_daily_v_points(db):
             daily_points[ascent_date] = daily_points.get(ascent_date, 0) + int(ole_grade)
 
     return max(daily_points.values()) if daily_points else 0
+
+
+def _test_ascent_badge(db, route_properties):
+    for route_name, crag_name, area_name in route_properties:
+        ascent = db.session.query(Ascent).join(Ascent.route).join(Route.crag).join(Crag.area).filter(
+            Ascent.user_id == db.user_id,
+            Ascent.is_project == False,
+            Route.name == route_name,
+            Crag.name == crag_name,
+            Area.name == area_name
+
+        ).first()
+        if not ascent:
+            return False
+    return True
+
+
+def has_font_big_5(db):
+    font_big_5 = [
+        ("Big Boss", "Cuvier Rempart", "Fontainebleau"),
+        ("Fourmis Rouge", "Cuvier Rempart", "Fontainebleau"),
+        ("Tristesse", "Cuvier Rempart", "Fontainebleau"),
+        ("Big Golden", "Cuvier Rempart", "Fontainebleau"),
+        ("Atrésie", "Cuvier Rempart", "Fontainebleau"),
+    ]
+    return _test_ascent_badge(db, font_big_5)
+
+
+def has_alpine_triology(db):
+    alpine_triology = [
+        ("Des Kaisers neue Kleider", "Fleischbankpfeiler", "Wilder Kaiser"),
+        ("Silbergeier", "Vierte Kirchlispitze", "Rätikon"),
+        ("End of Silence", "Feuerhorn", "Berchtesgadener Alpen")
+    ]
+    return _test_ascent_badge(db, alpine_triology)
+
+
+def is_local(db):
+    """Check if user has climbed on 100+ distinct days in one area."""
+    result = db.session.query(
+        Area.name,
+        func.count(func.distinct(Ascent.date)).label('days')
+    ).join(Ascent.route)\
+     .join(Route.crag)\
+     .join(Crag.area)\
+     .filter(
+        Ascent.user_id == db.user_id,
+        Ascent.is_project == False,
+        Ascent.date != None
+    ).group_by(Area.name)\
+     .order_by(func.count(func.distinct(Ascent.date)).desc())\
+     .first()
+    return result.days >= 100 if result else False
+
+
+def is_bleaussard(db):
+    """Check if user has climbed 100+ boulders in Fontainebleau."""
+    count = db.session.query(Ascent)\
+        .join(Ascent.route)\
+        .join(Route.crag)\
+        .join(Crag.area)\
+        .filter(
+            Ascent.user_id == db.user_id,
+            Ascent.is_project == False,
+            Route.discipline == "Boulder",
+            Area.name == "Fontainebleau"
+        ).count()
+    return count >= 100
+
+
+def is_epicing(db):
+    ascent = db.session.query(Ascent).join(Ascent.route).filter(
+        Ascent.user_id == db.user_id,
+        Ascent.is_project == False,
+        Route.discipline == "Multipitch",
+        Ascent.ascent_time > 15
+    ).first()
+    return ascent is not None
+
+
+def is_sandbagger(db):
+    count = db.session.query(Ascent).join(Ascent.route).filter(
+        Ascent.user_id == db.user_id,
+        Ascent.is_project == False,
+        Ascent.ole_grade != None,
+        Route.consensus_ole_grade != None,
+        Ascent.ole_grade < Route.consensus_ole_grade
+    ).count()
+    return count >= 3
+
+
+def is_grade_inflator(db):
+    count = db.session.query(Ascent).join(Ascent.route).filter(
+        Ascent.user_id == db.user_id,
+        Ascent.is_project == False,
+        Ascent.ole_grade != None,
+        Route.consensus_ole_grade != None,
+        Ascent.ole_grade > Route.consensus_ole_grade
+    ).count()
+    return count >= 3

@@ -9,7 +9,10 @@ from climbingdb.grade import Grade
 from climbingdb.ui.achievement_helpers import (
     get_max_daily_length,
     get_max_daily_v_points,
-    get_max_boulders_in_area
+    get_max_boulders_in_area,
+    has_alpine_triology, has_font_big_5,
+    is_local, is_epicing, is_bleaussard,
+    is_grade_inflator, is_sandbagger
 )
 
 
@@ -88,6 +91,49 @@ BADGES = {
         "label": "100 V Points",
         "message": "Day"
     },
+    "font_big_5": {
+        "name": "Font Big 5",
+        "description": "Climbed the big 5 boulders at Cuvier Rempart",
+        "label": "Font",
+        "message": "Big 5",
+    },
+    "alpine_trilogy": {
+        "name": "Alpine Trilogy",
+        "description": "Climbed the 3 classic Alpine multipitches",
+        "label": "Alpine",
+        "message": "Trilogy",
+    },
+    "local": {
+        "name": "Local",
+        "description": "Spent 100+ days in one area",
+        "color": "olive",
+        "label": "Local",
+        "message": "100 Days",
+    },
+    "bleuassard": {
+        "name": "Bleaussard",
+        "description": "Climbed 100+ boulders in Fontainebleau",
+        "label": "Bleaussard",
+        "message": "Font 100",
+    },
+    "im_epicing": {
+        "name": "I'm Epicing",
+        "description": "Climbed a multipitch with <10 pitches in >15 hours",
+        "label": "I'm Epicing",
+        "message": "15h+ hours",
+    },
+    "sandbagger": {
+        "name": "Sandbagger",
+        "description": "Congrats",
+        "label": "Sand",
+        "message": "Bagger",
+    },
+    "grade_inflator": {
+        "name": "Grade Inflator",
+        "description": "Outch",
+        "label": "Grade",
+        "message": "Inflator",
+    },
 }
 
 
@@ -114,6 +160,13 @@ def get_earned_badges_cached(_user_id):
         "century_club": stats['routes_8a_plus_count'] >= 100,
         "world_traveler": stats['total_countries'] >= 10,
         "v_points_100": max_daily_v_points >= 100,
+        "font_big_5": has_font_big_5(db),
+        "alpine_triology": has_alpine_triology(db),
+        "local": is_local(db),
+        "bleaussard": is_bleaussard(db),
+        "im_epicing": is_epicing(db),
+        "sandbagger": is_sandbagger(db),
+        "grade_inflator": is_grade_inflator(db),
     }
 
     badges = []
