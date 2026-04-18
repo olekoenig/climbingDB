@@ -2,10 +2,10 @@ from sqlalchemy import Column, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from climbingdb.models.base import Base
-from climbingdb.models.mixins import ClimbableMixin
+from climbingdb.models.mixins import ClimbableMixin, UpdateableMixin
 
 
-class PitchAscent(Base, ClimbableMixin):
+class PitchAscent(Base, ClimbableMixin, UpdateableMixin):
     __tablename__ = 'pitchascents'
 
     id = Column(Integer, primary_key=True)
@@ -16,3 +16,5 @@ class PitchAscent(Base, ClimbableMixin):
 
     ascent = relationship("Ascent", back_populates="pitch_ascents")
     pitch = relationship("Pitch", back_populates="pitch_ascents")
+
+    _excluded_fields = {'id', 'ascent_id', 'pitch_id'}

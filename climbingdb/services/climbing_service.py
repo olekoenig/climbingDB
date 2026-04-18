@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload, contains_eager
 import pandas as pd
 from datetime import datetime
 
-from climbingdb.models import SessionLocal, Route, Crag, Area, Country, Ascent, PitchAscent
+from climbingdb.models import SessionLocal, Route, Crag, Area, Country, Ascent, Pitch, PitchAscent
 from climbingdb.grade import Grade
 from climbingdb.services.crud import (
     get_or_create_location,
@@ -238,23 +238,19 @@ class ClimbingService:
 
 
     def update_ascent(self, ascent_id: int, **kwargs):
-        """Update user's ascent."""
         ascent = self._base_query().filter(Ascent.id == ascent_id).first()
 
         if not ascent:
             return None
 
-        # Update Ascent fields (user's experience)
-        for field in ['grade', 'style', 'stars', 'shortnote', 'notes', 'gear',
-                      'is_project', 'is_milestone', 'ernsthaftigkeit', 'ascent_time']:
-            if field in kwargs:
-                setattr(ascent, field, kwargs[field])
+        ascent_fields = Ascent.get_updatable_fields()
+        route_fields = Route.get_updatable_fields()
 
-        if 'date' in kwargs:
-            date = kwargs['date']
-            if isinstance(date, str):
-                date = datetime.strptime(date, '%Y-%m-%d').date()
-            ascent.date = date
+        for field, value in kwargs.items():
+            if field in ascent_fields:
+                setattr(ascent, field, value)
+            elif field in route_fields:
+                setattr(ascent.route, field, value)
 
         self.session.commit()
         return ascent
@@ -272,22 +268,29 @@ class ClimbingService:
         return True
 
     def update_pitch_ascents(self, pitch_updates: list) -> None:
-        try:
-            for update in pitch_updates:
-                pitch_ascent_id = update.pop('pitch_ascent_id')
-                pa = self.session.query(PitchAscent).filter(
-                    PitchAscent.id == pitch_ascent_id
-                ).first()
+        pitch_fields = Pitch.get_updatable_fields()
+        pitch_ascent_fields = PitchAscent.get_updatable_fields()
 
-                if pa:
-                    for field, value in update.items():
-                        setattr(pa, field, value)
+        for update in pitch_updates:
+            pitch_ascent_id = update.pop('pitch_ascent_id')
+            if not pitch_ascent_id:
+                continue
 
-            self.session.commit()
+            pa = self.session.query(PitchAscent).filter(
+                PitchAscent.id == pitch_ascent_id
+            ).first()
 
-        except Exception as e:
-            self.session.rollback()
-            raise
+            if not pa:
+                continue
+
+            for field, value in update.items():
+                if field in pitch_ascent_fields:
+                    setattr(pa, field, value)
+                elif field in pitch_fields and pa.pitch:
+                    setattr(pa.pitch, field, value)
+
+        self.session.commit()
+
 
     def get_ascent_by_id(self, ascent_id: int):
         """Get ascent by ID (user-filtered)."""
@@ -297,6 +300,7 @@ class ClimbingService:
     def get_route_by_id(self, route_id: int):
         """Get universal route by ID."""
         return self.session.query(Route).filter(Route.id == route_id).first()
+
 
     def get_statistics(self):
         """Get overall statistics for the user."""

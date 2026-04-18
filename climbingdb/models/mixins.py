@@ -2,7 +2,7 @@
 Mixins for shared model fields.
 """
 
-from sqlalchemy import Column, String, Float, Text, Integer
+from sqlalchemy import Column, String, Float, Text, Integer, inspect
 from sqlalchemy.orm import validates
 from climbingdb.grade import Grade
 
@@ -24,3 +24,20 @@ class ClimbableMixin:
         if grade_value:
             self.ole_grade = Grade(grade_value).conv_grade()
         return grade_value
+
+
+class UpdateableMixin:
+    """Mixin providing field introspection for safe updates."""
+
+    # Fields that should never be updated externally
+    _excluded_fields = {'id'}
+
+    @classmethod
+    def get_updatable_fields(cls):
+        """Get column names that can be safely updated. Excludes primary and foreign keys."""
+        mapper = inspect(cls).mapper
+        excluded = cls._excluded_fields | {
+            c.key for c in mapper.column_attrs
+            if any(col.foreign_keys for col in c.columns) or any(col.primary_key for col in c.columns)
+        }
+        return {c.key for c in mapper.column_attrs} - excluded

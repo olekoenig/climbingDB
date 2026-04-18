@@ -2,10 +2,11 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Float, Text
 from sqlalchemy.orm import relationship, validates
 
 from climbingdb.models.base import Base
+from climbingdb.models.mixins import UpdateableMixin
 from climbingdb.grade import Grade
 
 
-class Pitch(Base):
+class Pitch(Base, UpdateableMixin):
     __tablename__ = 'pitches'
 
     id = Column(Integer, primary_key=True)
@@ -22,6 +23,8 @@ class Pitch(Base):
 
     route = relationship("Route", back_populates="pitches")
     pitch_ascents = relationship("PitchAscent", back_populates="pitch")
+
+    _excluded_fields = {'id', 'route_id'}
 
     @validates('pitch_consensus_grade')
     def compute_pitch_consensus_ole_grade(self, key, grade_value):

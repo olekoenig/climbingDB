@@ -203,10 +203,9 @@ def _render_edit_fields(db, ascent):
                     longitude=new_longitude,
                     ernsthaftigkeit=new_ernsthaftigkeit,
                     length=new_length,
-                    ascent_time=new_ascent_time if new_ascent_time and new_ascent_time > 0 else None
+                    ascent_time=new_ascent_time
                 )
 
-                # Update pitch ascents
                 if pitch_updates:
                     db.update_pitch_ascents(pitch_updates)
 

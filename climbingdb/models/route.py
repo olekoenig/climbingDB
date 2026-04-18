@@ -3,10 +3,11 @@ from sqlalchemy.orm import relationship, validates
 from datetime import datetime, timezone
 
 from climbingdb.models.base import Base
+from climbingdb.models.mixins import UpdateableMixin
 from climbingdb.grade import Grade
 
 
-class Route(Base):
+class Route(Base, UpdateableMixin):
     __tablename__ = 'routes'
 
     id = Column(Integer, primary_key=True)
@@ -39,6 +40,9 @@ class Route(Base):
     crag = relationship("Crag", back_populates="routes")
     ascents = relationship("Ascent", back_populates="route", cascade="all, delete-orphan")
     pitches = relationship("Pitch", back_populates="route", cascade="all, delete-orphan")
+
+    # Excluded fields when updating in frontend
+    _excluded_fields = {'id', 'crag_id'}  # crag updated via relationship
 
     def __repr__(self):
         return f"<Route(id={self.id}, name='{self.name}', grade='{self.consensus_grade}', discipline='{self.discipline}')>"

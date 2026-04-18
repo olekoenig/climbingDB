@@ -19,6 +19,7 @@ Frontend:
 - Multipitches: Picture of wall uploadable, can mark the starting points/belays on the picture by clicking, put that into database
 - routes over time
 - integrate GPS, where to park, crag info
+- store cookies -> user doesn't have to re-log-in at page reload
 
 Backend:
 - Bleau: parkour als MSL, mit Boulder grad

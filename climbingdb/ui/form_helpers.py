@@ -44,7 +44,7 @@ def get_shortnote_options(discipline):
         shortnote.append("trad")
 
     if discipline == "Multipitch":
-        shortnote.append("simul")
+        shortnote.extend(["simul", "big wall"])
 
     return shortnote
 
@@ -81,17 +81,27 @@ def render_gps_fields(route):
     return latitude, longitude
 
 
-def render_multipitch_metadata(route):
+def render_multipitch_metadata(route, ascent):
     default_length = int(route.length) if route and route.length else 0
+    ernst_options = get_ernsthaftigkeit_options()
+    default_ernst_index = ernst_options.index(route.ernsthaftigkeit) if route and route.ernsthaftigkeit else 0
+    default_ascent_time = float(ascent.ascent_time) if ascent and ascent.ascent_time else 0.0
+
     length = st.number_input("Total Length (m)", min_value=0, step=10, value=default_length)
 
     col_ernst, col_time = st.columns(2)
     with col_ernst:
-        ernsthaftigkeit = st.selectbox("Ernsthaftigkeit (overall)", ["", "R", "X"])
+        ernsthaftigkeit = st.selectbox("Ernsthaftigkeit (overall)", ernst_options,
+                                       index=default_ernst_index)
     with col_time:
-        ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0, step=0.5)
+        ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0, step=0.5,
+                                      value = default_ascent_time)
 
-    return length if length > 0 else None, ernsthaftigkeit, ascent_time if ascent_time > 0 else None
+    return (
+        length if length > 0 else None,
+        ernsthaftigkeit,
+        ascent_time if ascent_time > 0 else None
+    )
 
 
 def render_grade_field(grade_options, route=None, ascent=None):
@@ -168,7 +178,7 @@ def _get_multipitch_defaults(grade_options, style_options, shortnote_options,
                              pitch=None, pitch_ascent=None):
     # Auto-populate from existing pitch
     pitch_grade_idx = 0
-    pitch_length = 0
+    pitch_length = 0.0
     pitch_name = ""
     pitch_ernsthaftigkeit_idx = 0
     pitch_style_idx = 0
@@ -181,7 +191,7 @@ def _get_multipitch_defaults(grade_options, style_options, shortnote_options,
         if pitch.pitch_consensus_grade in grade_options:
             pitch_grade_idx = grade_options.index(pitch.pitch_consensus_grade)
 
-        pitch_length = pitch.pitch_length if pitch.pitch_length else 0
+        pitch_length = pitch.pitch_length if pitch.pitch_length else 0.0
         pitch_name = pitch.pitch_name if pitch.pitch_name else ""
 
         ernsthaftigkeit_options = get_ernsthaftigkeit_options()
@@ -206,7 +216,7 @@ def _get_multipitch_defaults(grade_options, style_options, shortnote_options,
 def render_multipitch_fields(grade_options, style_options, shortnote_options, num_pitches,
                              route=None, ascent=None):
     """Render multipitch fields with full pitch details."""
-    length, ernsthaftigkeit, ascent_time = render_multipitch_metadata(route=route)
+    length, ernsthaftigkeit, ascent_time = render_multipitch_metadata(route=route, ascent=ascent)
 
     key_prefix = "edit" if ascent else "add"
 
@@ -241,7 +251,7 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
             with col3:
                 pitch_stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], key=f"{key_prefix}_pitch_stars_{i}",
                                            index=default_pitch_stars_idx)
-                pitch_length = st.number_input("Length (m)", min_value=0, key=f"{key_prefix}_pitch_length_{i}",
+                pitch_length = st.number_input("Length (m)", min_value=0.0, key=f"{key_prefix}_pitch_length_{i}",
                                                value=default_pitch_length)
 
             col4, col5 = st.columns(2)
@@ -263,12 +273,12 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
                 "led": pitch_led,
                 "style": pitch_style,
                 "stars": pitch_stars,
-                "pitch_length": pitch_length,
-                "pitch_name": pitch_name,
-                "ernsthaftigkeit": pitch_ernst,
                 "shortnote": ', '.join(pitch_shortnote),
                 "notes": pitch_notes,
-                "gear": pitch_gear
+                "gear": pitch_gear,
+                "pitch_length": pitch_length,
+                "pitch_name": pitch_name,
+                "pitch_ernsthaftigkeit": pitch_ernst
             })
 
             if i < int(num_pitches) - 1:
