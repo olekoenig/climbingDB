@@ -6,6 +6,7 @@ import streamlit as st
 from datetime import date
 
 from climbingdb.grade import ALL_GRADE_SYSTEMS
+from climbingdb.ui.navigation import DISCIPLINE_ICONS
 
 
 def get_grade_system_options(discipline):
@@ -50,7 +51,7 @@ def get_shortnote_options(discipline):
 
 
 def get_ernsthaftigkeit_options():
-    return ["", "R", "X"]
+    return ["", "R", "X", "V", "VI"]
 
 
 def validate_route_data(name, grade, area, crag, country):
@@ -220,7 +221,7 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
 
     key_prefix = "edit" if ascent else "add"
 
-    with (st.expander(":material/altitude: Detailed Pitch Information", expanded=False)):
+    with (st.expander(f"{DISCIPLINE_ICONS['Pitches']} Detailed Pitch Information", expanded=False)):
         st.markdown("Enter complete details for each pitch:")
 
         pitches_list = []

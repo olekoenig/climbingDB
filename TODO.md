@@ -1,5 +1,6 @@
 Frontend:
 
+- add search functionality
 - tabs instead of buttons for navigation
 - add achievements batch:
   - climbed a worlds first (add FA dates)

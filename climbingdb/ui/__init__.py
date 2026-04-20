@@ -9,6 +9,8 @@ from .dashboard import render_dashboard
 from .display import render_routes_table, convert_grades
 from .forms import render_add_route_form, render_edit_delete_form
 from .auth import require_authentication, render_user_menu, render_settings_page
+from .route_details import render_route_details_page
+from .search import render_search
 
 __all__ = [
     'CUSTOM_CSS',
@@ -22,5 +24,7 @@ __all__ = [
     'render_edit_delete_form',
     'require_authentication',
     'render_user_menu',
-    'render_settings_page'
+    'render_settings_page',
+    'render_route_details_page',
+    'render_search'
 ]
