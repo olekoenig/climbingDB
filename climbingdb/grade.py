@@ -317,14 +317,22 @@ class Grade:
         return conversions[scale][self.value]
 
     @staticmethod
-    def from_ole_grade(ole_value: float, target_system: str) -> str:
+    def from_ole_grade(ole_value: float, target_system: str, nearest: bool = True) -> str:
         """
-        Convert from ole_grade (numeric) back to a grading system.
+        Convert ole_grade float to grade string.
 
-        :param ole_value: The numeric ole_grade value
-        :param target_system: Target system ('French', 'UIAA', 'YDS', 'Elbsandstein', 'Vermin', 'Font')
-        :returns: Grade string in target system
+        Args:
+            ole_value: Float ole_grade value
+            target_system: Grading system ('French', 'UIAA', etc.)
+            nearest: If True, returns nearest grade (for averages/consensus).
+                     If False, rounds down (for display conversion).
+
+        Returns:
+            Grade string or None
         """
+        if not ole_value:
+            return None
+
         conversions = {
             'French': Ole_to_French,
             'UIAA': Ole_to_UIAA,
@@ -334,15 +342,25 @@ class Grade:
             'Font': Ole_to_Font
         }
 
-        # Direct lookup
-        if ole_value in conversions[target_system]:
-            return conversions[target_system][ole_value]
+        if target_system not in conversions:
+            return None
 
-        # If exact match not found, find closest lower grade
-        # This handles cases where ole_grade doesn't exactly match
         reverse_dict = conversions[target_system]
+
+        # Exact match
+        if ole_value in reverse_dict:
+            return reverse_dict[ole_value]
+
         available_grades = sorted(reverse_dict.keys())
 
-        for i in range(len(available_grades)-1, -1, -1):
-            if available_grades[i] <= ole_value:
-                return reverse_dict[available_grades[i]]
+        if nearest:
+            # Find nearest grade (for consensus/averages)
+            nearest_ole = min(available_grades, key=lambda k: abs(k - ole_value))
+            return reverse_dict[nearest_ole]
+        else:
+            # Round down (for display conversion)
+            for i in range(len(available_grades) - 1, -1, -1):
+                if available_grades[i] <= ole_value:
+                    return reverse_dict[available_grades[i]]
+
+        return None
