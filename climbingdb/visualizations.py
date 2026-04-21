@@ -4,24 +4,35 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from climbingdb.grade import Ole_to_French, Grade
+from climbingdb.grade import Grade
 
 if shutil.which("latex"):
     plt.rcParams['text.usetex'] = True
 
 
-def plot_multipitches(mp_dataframe):
+def plot_multipitches(mp_dataframe, title="My multipitch distribution", xwidth=None, ywidth=None):
     mp = mp_dataframe.sort_values(by=["ole_grade"], ascending=False)
 
-    min_grade = mp['ole_grade'].min()
-    max_grade = mp['ole_grade'].max()
+    if len(mp['ole_grade']) > 1:
+        # Plotting multiple multipitches in multipitch dashboard
+        grades = mp['ole_grade']
+    else:
+        # Plotting only one route for route detail page
+        grades = mp['pitches_data'].iloc[0]['ole_grade']
+
+    min_grade = min(grades)
+    max_grade = max(grades)
 
     # to define own cmap, see https://stackoverflow.com/questions/53754012/create-a-gradient-colormap-matplotlib
     norm = matplotlib.colors.Normalize(vmin=min_grade, vmax=max_grade, clip=True)
     mapper = cm.ScalarMappable(norm=norm, cmap=matplotlib.colormaps.get_cmap('RdYlGn_r'))
 
-    xwidth = max(.37 * len(mp.name), 15)
-    fig, ax = plt.subplots(figsize=(xwidth, xwidth/3))
+    if not xwidth:
+        xwidth = max(.37 * len(mp.name), 15)
+    if not ywidth:
+        ywidth = xwidth/3
+
+    fig, ax = plt.subplots(figsize=(xwidth, ywidth))
 
     for index, row in mp.iterrows():
         avg_pitch_length = row.length / row.pitch_number
@@ -43,23 +54,27 @@ def plot_multipitches(mp_dataframe):
             kwargs['alpha'] = 0.2 if row.is_project else 1
 
             grade = row['grade'] if row['style'] == "" else "{} {}".format(row['grade'], row['style'])
-            title = '{} ({})\n {}'.format(row['name'], grade, row['area'])
+            subtitle = '{} ({})\n {}'.format(row['name'], grade, row['area'])
 
-            ax.bar(title, avg_pitch_length, **kwargs)
-            # plt.text(title, c*avg_pitch_length+avg_pitch_length//2, pitch, ha = 'center')
+            ax.bar(subtitle, avg_pitch_length, **kwargs)
+            # plt.text(subtitle, c*avg_pitch_length+avg_pitch_length//2, pitch, ha = 'center')
 
     props = dict(boxstyle='round', facecolor='white', alpha=0.5)
     ax.text(.99, 0.95, "Solid: Lead\n Hashed: Follow\n Transparent: Project", transform=ax.transAxes, fontsize=10,
             va='top', ha="right", bbox=props)
 
-    plt.title("My multipitch distribution", fontsize=14, fontweight='bold', pad=20)
+    if title:
+        plt.title(title, fontsize=14, fontweight='bold', pad=20)
+
     plt.xticks(rotation=90)
     plt.ylabel("Length [m]")
 
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='1%', pad=0.05)
-    tics = [11, 15, 18, 20, 22, 24, 26, 28, 29.5]
-    ticlabels = [Ole_to_French[tic] for tic in tics]
+    cax = divider.append_axes('right', size=.2, pad=0.05)
+    #tics = [11, 15, 18, 20, 22, 24, 26, 28, 29.5]
+    #ticlabels = [Ole_to_French[tic] for tic in tics]
+    tics = [min_grade + (max_grade - min_grade) * i / 9 for i in range(10)]  # equivalent to np.linspace but don't want to add to requirements
+    ticlabels = [Grade.from_ole_grade(float(x), "French") for x in tics]
     cbar = fig.colorbar(mapper, cax=cax, orientation='vertical')
     cbar.set_ticks(tics)
     cbar.set_ticklabels(ticlabels)

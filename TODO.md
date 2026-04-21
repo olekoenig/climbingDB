@@ -26,6 +26,7 @@ Backend:
 - Bleau: parkour als MSL, mit Boulder grad
 - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)
 - consensus grade = AVERAGE(ascent.grade), gewichtet mit #routen des users, evtl. mit erfahrung in diesem Grad?
+- remove try/except in add_ascent. There is already a try/except in forms.py:_handle_add_route_form_submission
 
 Database:
 - Add denormalized fields of area and crag in Route class for faster filtering/display
