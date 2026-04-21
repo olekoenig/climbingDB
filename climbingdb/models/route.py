@@ -1,13 +1,12 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, Text, JSON
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date, DateTime
+from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
 from climbingdb.models.base import Base
-from climbingdb.models.mixins import UpdateableMixin
-from climbingdb.grade import Grade
+from climbingdb.models.mixins import RouteMixin, UpdateableMixin
 
 
-class Route(Base, UpdateableMixin):
+class Route(Base, RouteMixin, UpdateableMixin):
     __tablename__ = 'routes'
 
     id = Column(Integer, primary_key=True)
@@ -15,26 +14,16 @@ class Route(Base, UpdateableMixin):
     crag_id = Column(Integer, ForeignKey('crags.id'), nullable=False, index=True)
     discipline = Column(String(20), nullable=False, index=True)  # 'Sportclimb', 'Boulder', 'Multipitch'
 
-    consensus_grade = Column(String)  # Average grade
-    consensus_ole_grade = Column(Float, index=True)
-    consensus_stars = Column(Float)
-
     first_ascent = Column(Date)
     first_ascensionist = Column(String)
-
-    length = Column(Float)
-    bolts = Column(Integer)
-    ernsthaftigkeit = Column(String(10))
 
     latitude = Column(Float)
     longitude = Column(Float)
 
-    description = Column(Text)  # Non user-dependent route description
-    photo_urls = Column(JSON)  # Wall picture, potentially with first pitch indicated
-
-    timestamp = datetime.now(timezone.utc)
-    created_at = Column(Date, default=timestamp)
-    updated_at = Column(Date, default=timestamp, onupdate=timestamp)
+    # Use DateTime instead of Date (-> with seconds)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     crag = relationship("Crag", back_populates="routes")
@@ -49,12 +38,6 @@ class Route(Base, UpdateableMixin):
 
     def __str__(self):
         return f"{self.name} ({self.consensus_grade})"
-
-    @validates('consensus_grade')
-    def compute_consensus_ole_grade(self, key, grade_value):
-        if grade_value:
-            self.consensus_ole_grade = Grade(grade_value).conv_grade()
-        return grade_value
 
     @property
     def area(self):
