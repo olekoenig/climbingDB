@@ -2,7 +2,7 @@
 Climbing database service layer with Route/Ascent separation.
 """
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from sqlalchemy.orm import joinedload, contains_eager
 import pandas as pd
 from datetime import datetime
@@ -229,7 +229,15 @@ class ClimbingService:
             if discipline == "Multipitch" and pitches:
                 create_pitches_and_ascents(self.session, route, ascent, pitches)
 
-            self.session.commit()
+            self.session.commit()  # Commit the ascent first
+
+            # Update consensus fields (grade, stars)
+            self.update_consensus_fields(route)
+            if discipline == "Multipitch":
+                for pitch in route.pitches:
+                    self.update_consensus_fields(pitch)
+            self.session.commit()  # Single commit for all consensus updates
+
             return ascent
 
         except Exception as e:
@@ -239,9 +247,11 @@ class ClimbingService:
 
     def update_ascent(self, ascent_id: int, **kwargs):
         ascent = self._base_query().filter(Ascent.id == ascent_id).first()
-
         if not ascent:
             return None
+
+        # Track ID for later update of the consensus fields
+        route_id = ascent.route_id
 
         ascent_fields = Ascent.get_updatable_fields()
         route_fields = Route.get_updatable_fields()
@@ -253,23 +263,51 @@ class ClimbingService:
                 setattr(ascent.route, field, value)
 
         self.session.commit()
+
+        # Update consensus fields
+        route = self.session.query(Route).filter(Route.id == route_id).first()
+        self.update_consensus_fields(route)
+
+        if 'grade' in kwargs and ascent.route.discipline == "Multipitch":
+            for pitch in ascent.route.pitches:
+                self.update_consensus_fields(pitch)
+
+        self.session.commit()
+
         return ascent
 
 
     def delete_ascent(self, ascent_id: int) -> bool:
         """Delete user's ascent (and cascade to pitch ascents)."""
         ascent = self._base_query().filter(Ascent.id == ascent_id).first()
-
         if not ascent:
             return False
 
+        # Save IDs before deletion for later consensus field update
+        route_id = ascent.route_id
+        pitch_ids = [pa.pitch_id for pa in ascent.pitch_ascents]
+
         self.session.delete(ascent)
         self.session.commit()
+
+        # Update the consensus fields
+        route = self.session.query(Route).filter(Route.id == route_id).first()
+        self.update_consensus_fields(route)
+
+        for pitch_id in pitch_ids:
+            pitch = self.session.query(Pitch).filter(Pitch.id == pitch_id).first()
+            self.update_consensus_fields(pitch)
+
+        self.session.commit()
+
         return True
+
 
     def update_pitch_ascents(self, pitch_updates: list) -> None:
         pitch_fields = Pitch.get_updatable_fields()
         pitch_ascent_fields = PitchAscent.get_updatable_fields()
+
+        updated_pitch_ids = set()
 
         for update in pitch_updates:
             pitch_ascent_id = update.pop('pitch_ascent_id')
@@ -289,7 +327,66 @@ class ClimbingService:
                 elif field in pitch_fields and pa.pitch:
                     setattr(pa.pitch, field, value)
 
+            updated_pitch_ids.add(pa.pitch_id)
+
         self.session.commit()
+
+        # Update the consensus fields (grade, stars)
+        for pitch_id in updated_pitch_ids:
+            pitch = self.session.query(Pitch).filter(Pitch.id == pitch_id).first()
+            self.update_consensus_fields(pitch)
+        self.session.commit()
+
+    def update_consensus_fields(self, obj) -> None:
+        """
+        Update consensus grade and stars for a Route or Pitch.
+        Works for both because they share RouteMixin fields.
+
+        Args:
+            obj: Route or Pitch object (both have RouteMixin fields)
+        """
+        # Determine correct table for averaging
+        if isinstance(obj, Route):
+            avg_ole_grade = self.session.query(
+                func.avg(Ascent.ole_grade)
+            ).filter(
+                Ascent.route_id == obj.id,
+                Ascent.is_project == False
+            ).scalar()
+
+            avg_stars = self.session.query(
+                func.avg(Ascent.stars)
+            ).filter(
+                Ascent.route_id == obj.id,
+                Ascent.is_project == False,
+                Ascent.stars > 0
+            ).scalar()
+
+        elif isinstance(obj, Pitch):
+            avg_ole_grade = self.session.query(
+                func.avg(PitchAscent.ole_grade)
+            ).filter(
+                PitchAscent.pitch_id == obj.id
+            ).scalar()
+
+            avg_stars = self.session.query(
+                func.avg(PitchAscent.stars)
+            ).filter(
+                PitchAscent.pitch_id == obj.id,
+                PitchAscent.stars > 0
+            ).scalar()
+
+        else:
+            raise ValueError(f"Expected Route or Pitch, got {type(obj)}")
+
+        # Update shared RouteMixin fields (same for both)
+        if avg_ole_grade:
+            obj.consensus_ole_grade = avg_ole_grade
+            scale = Grade(obj.consensus_grade).get_scale() if obj.consensus_grade else 'French'
+            obj.consensus_grade = Grade.from_ole_grade(avg_ole_grade, scale, nearest=True)
+
+        if avg_stars:
+            obj.consensus_stars = avg_stars
 
 
     def get_ascent_by_id(self, ascent_id: int):
@@ -338,7 +435,7 @@ class ClimbingService:
         threshold_8A_boulder = Grade("8A").conv_grade()
 
         routes_8a_plus = sportclimbs.filter(Ascent.ole_grade >= threshold_8a_sport).count()
-        boulders_8A_plus = sportclimbs.filter(Ascent.ole_grade >= threshold_8A_boulder).count()
+        boulders_8A_plus = boulders.filter(Ascent.ole_grade >= threshold_8A_boulder).count()
         ascents_with_notes = ascents.filter(Ascent.notes != None, Ascent.notes != "").count()
         comment_ratio = ascents_with_notes / total_ascents if total_ascents > 0 else 0
 
@@ -365,8 +462,8 @@ class ClimbingService:
             'hardest_boulder_flash_name': hardest_boulder_flash.route.name if hardest_boulder_flash else None,
             'hardest_multipitch_grade': hardest_mp.grade if hardest_mp else 0,
             'hardest_multipitch_name': hardest_mp.route.name if hardest_mp else None,
-            'hardest_multipitch_onsight_grade': hardest_mp.grade if hardest_mp else 0,
-            'hardest_multipitch_onsight_name': hardest_mp.route.name if hardest_mp else None,
+            'hardest_multipitch_onsight_grade': hardest_mp_os.grade if hardest_mp_os else 0,
+            'hardest_multipitch_onsight_name': hardest_mp_os.route.name if hardest_mp_os else None,
 
             'routes_8a_plus_count': routes_8a_plus,
             'boulders_8A_plus_count': boulders_8A_plus,
