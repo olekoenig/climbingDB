@@ -4,7 +4,6 @@ Used by both climbing_service.py and csv_to_sqlalchemy.py.
 """
 
 from climbingdb.models import Country, Area, Crag, Route, Pitch, Ascent, PitchAscent
-from climbingdb.grade import Grade
 
 
 def get_or_create_country(session, country_name, verbose=False):
@@ -146,10 +145,10 @@ def get_or_create_pitch(session, route, pitch_number, pitch_data):
         pitch = Pitch(
             route=route,
             pitch_number=pitch_number,
-            pitch_consensus_grade=pitch_data.get('grade'),
-            pitch_length=pitch_data.get('pitch_length'),
+            consensus_grade=pitch_data.get('grade'),
+            length=pitch_data.get('length'),
             pitch_name=pitch_data.get('pitch_name'),
-            pitch_ernsthaftigkeit=pitch_data.get('pitch_ernsthaftigkeit')
+            ernsthaftigkeit=pitch_data.get('ernsthaftigkeit')
         )
         session.add(pitch)
         session.flush()

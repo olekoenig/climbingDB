@@ -2,10 +2,10 @@ from sqlalchemy import Column, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from climbingdb.models.base import Base
-from climbingdb.models.mixins import ClimbableMixin, UpdateableMixin
+from climbingdb.models.mixins import AscentMixin, UpdateableMixin
 
 
-class PitchAscent(Base, ClimbableMixin, UpdateableMixin):
+class PitchAscent(Base, AscentMixin, UpdateableMixin):
     __tablename__ = 'pitchascents'
 
     id = Column(Integer, primary_key=True)

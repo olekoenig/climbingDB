@@ -16,14 +16,16 @@ from climbingdb.ui import (
     render_routes_table,
     convert_grades,
     render_add_route_form,
-    render_edit_delete_form
+    render_edit_delete_form,
+    render_route_details_page,
+    render_search
 )
 from climbingdb.ui.auth import (
     require_authentication,
     render_user_menu,
     render_settings_page
 )
-from climbingdb.config import REQUIRE_AUTH
+from climbingdb.config import REQUIRE_AUTH, SHOW_DEMO
 
 
 #@st.cache_resource
@@ -52,6 +54,15 @@ def main():
         layout="wide"
     )
 
+    # Handle shared route link BEFORE authentication
+    route_id = st.query_params.get('route_id')
+    if route_id:
+        # Check if user is already authenticated (without forcing login)
+        user_id = st.session_state.get('user_id')
+        public_db = ClimbingService(user_id=None)
+        render_route_details_page(public_db, route_id, user_id=user_id)
+        return
+
     if REQUIRE_AUTH:
         if not require_authentication():
             return
@@ -75,6 +86,7 @@ def main():
         st.session_state.view = 'Sportclimb'
 
     # Render UI
+    render_search(db)
     st.title("My Climbing Logbook")
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
     render_navigation_buttons()
