@@ -4,7 +4,6 @@ Used by both climbing_service.py and csv_to_sqlalchemy.py.
 """
 
 from climbingdb.models import Country, Area, Crag, Route, Pitch, Ascent, PitchAscent
-from climbingdb.grade import Grade
 
 
 def get_or_create_country(session, country_name, verbose=False):
@@ -146,10 +145,10 @@ def get_or_create_pitch(session, route, pitch_number, pitch_data):
         pitch = Pitch(
             route=route,
             pitch_number=pitch_number,
-            pitch_consensus_grade=pitch_data.get('grade'),
-            pitch_length=pitch_data.get('pitch_length'),
+            consensus_grade=pitch_data.get('grade'),
+            length=pitch_data.get('length'),
             pitch_name=pitch_data.get('pitch_name'),
-            pitch_ernsthaftigkeit=pitch_data.get('pitch_ernsthaftigkeit')
+            ernsthaftigkeit=pitch_data.get('ernsthaftigkeit')
         )
         session.add(pitch)
         session.flush()
@@ -183,3 +182,37 @@ def create_pitches_and_ascents(session, route, ascent, pitches_data):
     for i, pitch_data in enumerate(pitches_data):
         pitch = get_or_create_pitch(session, route, i + 1, pitch_data)
         create_pitch_ascent(session, ascent, pitch, pitch_data)
+
+
+def load_existing_ascents(session, user_id):
+    """Load existing ascents for a user into memory."""
+    return {
+        (a.route_id, a.date): a for a in
+        session.query(Ascent).filter(Ascent.user_id == user_id).all()
+    }
+
+def load_existing_routes(session, route_names=None):
+    """Load existing routes into memory, optionally filtered by name."""
+    query = session.query(Route)
+    if route_names:
+        query = query.filter(Route.name.in_(route_names))
+    return {(r.name, r.crag_id, r.discipline): r for r in query.all()}
+
+def load_existing_countries(session, country_names=None):
+    query = session.query(Country)
+    if country_names:
+        query = query.filter(Country.name.in_(country_names))
+    return {c.name: c for c in query.all()}
+
+def load_existing_areas(session, area_names=None):
+    query = session.query(Area)
+    if area_names:
+        query = query.filter(Area.name.in_(area_names))
+    return {a.name: a for a in query.all()}
+
+def load_existing_crags(session, crag_names=None):
+    query = session.query(Crag)
+    if crag_names:
+        query = query.filter(Crag.name.in_(crag_names))
+    return {c.name: c for c in query.all()}
+

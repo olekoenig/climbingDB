@@ -5,7 +5,8 @@ Helper functions for form rendering.
 import streamlit as st
 from datetime import date
 
-from climbingdb.grade import French, UIAA, YDS, Elbsandstein, Vermin, Font
+from climbingdb.grade import ALL_GRADE_SYSTEMS
+from climbingdb.ui.navigation import DISCIPLINE_ICONS
 
 
 def get_grade_system_options(discipline):
@@ -29,7 +30,9 @@ def get_style_options(discipline):
 
 def get_grade_options(grade_system):
     """Get sorted grade options for a grading system."""
-    grade_dict = eval(grade_system)  # French, UIAA, etc.
+    if grade_system not in ALL_GRADE_SYSTEMS:
+        raise ValueError(f"Unknown grade system: {grade_system}")
+    grade_dict = ALL_GRADE_SYSTEMS[grade_system]  # French, UIAA, etc.
     return [""] + [k for k, v in sorted(grade_dict.items(), key=lambda x: x[1])]
 
 
@@ -42,13 +45,13 @@ def get_shortnote_options(discipline):
         shortnote.append("trad")
 
     if discipline == "Multipitch":
-        shortnote.append("simul")
+        shortnote.extend(["simul", "big wall"])
 
     return shortnote
 
 
 def get_ernsthaftigkeit_options():
-    return ["", "R", "X"]
+    return ["", "R", "X", "V", "VI"]
 
 
 def validate_route_data(name, grade, area, crag, country):
@@ -79,17 +82,27 @@ def render_gps_fields(route):
     return latitude, longitude
 
 
-def render_multipitch_metadata(route):
+def render_multipitch_metadata(route, ascent):
     default_length = int(route.length) if route and route.length else 0
+    ernst_options = get_ernsthaftigkeit_options()
+    default_ernst_index = ernst_options.index(route.ernsthaftigkeit) if route and route.ernsthaftigkeit else 0
+    default_ascent_time = float(ascent.ascent_time) if ascent and ascent.ascent_time else 0.0
+
     length = st.number_input("Total Length (m)", min_value=0, step=10, value=default_length)
 
     col_ernst, col_time = st.columns(2)
     with col_ernst:
-        ernsthaftigkeit = st.selectbox("Ernsthaftigkeit (overall)", ["", "R", "X"])
+        ernsthaftigkeit = st.selectbox("Ernsthaftigkeit (overall)", ernst_options,
+                                       index=default_ernst_index)
     with col_time:
-        ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0, step=0.5)
+        ascent_time = st.number_input("Ascent Time (hours)", min_value=0.0, step=0.5,
+                                      value = default_ascent_time)
 
-    return length if length > 0 else None, ernsthaftigkeit, ascent_time if ascent_time > 0 else None
+    return (
+        length if length > 0 else None,
+        ernsthaftigkeit,
+        ascent_time if ascent_time > 0 else None
+    )
 
 
 def render_grade_field(grade_options, route=None, ascent=None):
@@ -165,108 +178,108 @@ def render_ascent_misc_fields(discipline, style_options, shortnote_options, asce
 def _get_multipitch_defaults(grade_options, style_options, shortnote_options,
                              pitch=None, pitch_ascent=None):
     # Auto-populate from existing pitch
-    pitch_grade_idx = 0
-    pitch_length = 0
+    grade_idx = 0
+    length = 0.0
     pitch_name = ""
-    pitch_ernsthaftigkeit_idx = 0
-    pitch_style_idx = 0
-    pitch_led_bool = True
-    pitch_stars_idx = 0
-    pitch_notes = ""
-    pitch_gear = ""
+    ernsthaftigkeit_idx = 0
+    style_idx = 0
+    led_bool = True
+    stars_idx = 0
+    notes = ""
+    gear = ""
 
     if pitch:
-        if pitch.pitch_consensus_grade in grade_options:
-            pitch_grade_idx = grade_options.index(pitch.pitch_consensus_grade)
+        if pitch.consensus_grade in grade_options:
+            grade_idx = grade_options.index(pitch.consensus_grade)
 
-        pitch_length = pitch.pitch_length if pitch.pitch_length else 0
+        length = pitch.length if pitch.length else 0.0
         pitch_name = pitch.pitch_name if pitch.pitch_name else ""
 
         ernsthaftigkeit_options = get_ernsthaftigkeit_options()
-        if pitch.pitch_ernsthaftigkeit in ernsthaftigkeit_options:
-            pitch_ernsthaftigkeit_idx = ernsthaftigkeit_options.index(pitch.pitch_ernsthaftigkeit)
+        if pitch.ernsthaftigkeit in ernsthaftigkeit_options:
+            ernsthaftigkeit_idx = ernsthaftigkeit_options.index(pitch.ernsthaftigkeit)
 
     if pitch_ascent:
         if pitch_ascent.grade in grade_options:
-            pitch_grade_idx = grade_options.index(pitch_ascent.grade)
+            grade_idx = grade_options.index(pitch_ascent.grade)
         if pitch_ascent.style in style_options:
-            pitch_style_idx = style_options.index(pitch_ascent.style)
+            style_idx = style_options.index(pitch_ascent.style)
 
-        pitch_led_bool = pitch_ascent.led
-        pitch_stars_idx = pitch_ascent.stars
-        pitch_notes = pitch_ascent.notes if pitch_ascent.notes else ""
-        pitch_gear = pitch_ascent.gear if pitch_ascent.gear else ""
+        led_bool = pitch_ascent.led
+        stars_idx = pitch_ascent.stars
+        notes = pitch_ascent.notes if pitch_ascent.notes else ""
+        gear = pitch_ascent.gear if pitch_ascent.gear else ""
 
-    return (pitch_grade_idx, pitch_length, pitch_name, pitch_ernsthaftigkeit_idx,
-            pitch_style_idx, pitch_led_bool, pitch_stars_idx, pitch_notes, pitch_gear)
+    return (grade_idx, length, pitch_name, ernsthaftigkeit_idx,
+            style_idx, led_bool, stars_idx, notes, gear)
 
 
 def render_multipitch_fields(grade_options, style_options, shortnote_options, num_pitches,
                              route=None, ascent=None):
     """Render multipitch fields with full pitch details."""
-    length, ernsthaftigkeit, ascent_time = render_multipitch_metadata(route=route)
+    length, ernsthaftigkeit, ascent_time = render_multipitch_metadata(route=route, ascent=ascent)
 
     key_prefix = "edit" if ascent else "add"
 
-    with (st.expander(":material/altitude: Detailed Pitch Information", expanded=False)):
+    with (st.expander(f"{DISCIPLINE_ICONS['Pitches']} Detailed Pitch Information", expanded=False)):
         st.markdown("Enter complete details for each pitch:")
 
         pitches_list = []
         for i in range(num_pitches):
             st.markdown(f"### Pitch {i+1}")
 
-            pitch = route.pitches[i] if route else None  # contains info of pitch_grade, pitch_name, pitch_style, etc.
+            pitch = route.pitches[i] if route else None  # contains info of the pitch's grade, name, style, etc.
             pitch_ascent = ascent.pitch_ascents[i] if ascent else None  # contains info of overall grade, style, etc.
 
             # Get the correct indices and values for auto-population (both if one wants
             # to add a route that is already in the database, and if one wants to edit a route).
-            (default_pitch_grade_idx, default_pitch_length, default_pitch_name, default_pitch_ernsthaftigkeit_idx,
-             default_pitch_style_idx, default_pitch_led, default_pitch_stars_idx, default_pitch_notes, default_pitch_gear) = (
+            (default_grade_idx, default_length, default_pitch_name, default_ernsthaftigkeit_idx,
+             default_style_idx, default_led, default_stars_idx, default_notes, default_gear) = (
                 _get_multipitch_defaults(grade_options, style_options, shortnote_options,
                                          pitch=pitch, pitch_ascent=pitch_ascent))
 
             col1, col2, col3 = st.columns(3)
             with col1:
-                pitch_grade = st.selectbox("Grade", grade_options,
-                                           key=f"{key_prefix}_pitch_grade_{i}", index=default_pitch_grade_idx)
-                pitch_name = st.text_input("Name", key=f"{key_prefix}_pitch_name_{i}", placeholder="e.g., Crux pitch",
+                grade = st.selectbox("Grade", grade_options,
+                                           key=f"{key_prefix}_pitch_grade_{i}", index=default_grade_idx)
+                pitch_name = st.text_input("Pitch Name", key=f"{key_prefix}_pitch_name_{i}", placeholder="e.g., Crux pitch",
                                            value=default_pitch_name)
 
             with col2:
-                pitch_style = st.selectbox("Style", style_options, key=f"{key_prefix}_pitch_style_{i}", index=default_pitch_style_idx)
-                pitch_led = st.checkbox("Led (uncheck if followed)", value=default_pitch_led, key=f"{key_prefix}_pitch_led_{i}")
+                style = st.selectbox("Style", style_options, key=f"{key_prefix}_pitch_style_{i}", index=default_style_idx)
+                led = st.checkbox("Led (uncheck if followed)", value=default_led, key=f"{key_prefix}_pitch_led_{i}")
 
             with col3:
-                pitch_stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], key=f"{key_prefix}_pitch_stars_{i}",
-                                           index=default_pitch_stars_idx)
-                pitch_length = st.number_input("Length (m)", min_value=0, key=f"{key_prefix}_pitch_length_{i}",
-                                               value=default_pitch_length)
+                stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], key=f"{key_prefix}_pitch_stars_{i}",
+                                           index=default_stars_idx)
+                length = st.number_input("Length (m)", min_value=0.0, key=f"{key_prefix}_pitch_length_{i}",
+                                               value=default_length)
 
             col4, col5 = st.columns(2)
             with col4:
                 ernsthaftigkeit_options = get_ernsthaftigkeit_options()
-                pitch_ernst = st.selectbox("Ernsthaftigkeit", ernsthaftigkeit_options,
-                                           key=f"{key_prefix}_pitch_ernst_{i}", index=default_pitch_ernsthaftigkeit_idx)
+                ernst = st.selectbox("Ernsthaftigkeit", ernsthaftigkeit_options,
+                                           key=f"{key_prefix}_pitch_ernst_{i}", index=default_ernsthaftigkeit_idx)
             with col5:
-                pitch_shortnote = st.multiselect("Short note", shortnote_options, key=f"{key_prefix}_pitch_shortnote_{i}")
+                shortnote = st.multiselect("Short note", shortnote_options, key=f"{key_prefix}_pitch_shortnote_{i}")
 
-            pitch_notes = st.text_area("Pitch Notes", value=default_pitch_notes,
+            notes = st.text_area("Pitch Notes", value=default_notes,
                                        key=f"{key_prefix}_pitch_notes_{i}", placeholder="Detailed notes for this pitch")
-            pitch_gear = st.text_input("Pitch Gear", value=default_pitch_gear,
+            gear = st.text_input("Pitch Gear", value=default_gear,
                                        key=f"{key_prefix}_pitch_gear_{i}", placeholder="Specific gear for this pitch")
 
             pitches_list.append({
                 "pitch_ascent_id": pitch_ascent.id if pitch_ascent else None,
-                "grade": pitch_grade,
-                "led": pitch_led,
-                "style": pitch_style,
-                "stars": pitch_stars,
-                "pitch_length": pitch_length,
+                "grade": grade,
+                "led": led,
+                "style": style,
+                "stars": stars,
+                "shortnote": ', '.join(shortnote),
+                "notes": notes,
+                "gear": gear,
+                "length": length,
                 "pitch_name": pitch_name,
-                "ernsthaftigkeit": pitch_ernst,
-                "shortnote": ', '.join(pitch_shortnote),
-                "notes": pitch_notes,
-                "gear": pitch_gear
+                "ernsthaftigkeit": ernst
             })
 
             if i < int(num_pitches) - 1:
