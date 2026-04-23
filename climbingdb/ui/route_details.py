@@ -47,8 +47,7 @@ def _render_navigation_header():
 def _render_grade_stars(obj):
     st.markdown(f"**Consensus Grade:** {obj.consensus_grade or 'N/A'}")
     if obj.consensus_stars:
-        stars = ":material/star: " * int(obj.consensus_stars)
-        st.markdown(f"**Average stars:** {stars}")
+        st.markdown(f"**Average stars:** {obj.consensus_stars}")
 
 
 def _render_location(route):
@@ -120,7 +119,6 @@ def _render_ascent_properties(ascent):
     if ascent.stars:
         st.markdown(f"**Stars:** {':material/star:' * int(ascent.stars)}")
 
-
     if hasattr(ascent, 'date') and ascent.date:
         st.markdown(f"**Date:** {str(ascent.date)}")
 
@@ -178,9 +176,7 @@ def _render_pitch_details(ascent):
 
     st.markdown(f"#### {DISCIPLINE_ICONS['Pitches']} Detailed Pitch Information")
 
-    sorted_pitch_ascents = sorted(ascent.pitch_ascents, key=lambda pa: pa.pitch.pitch_number)
-
-    for pa in sorted_pitch_ascents:
+    for pa in ascent.pitch_ascents:
         pitch = pa.pitch
 
         pitch_number = pitch.pitch_number

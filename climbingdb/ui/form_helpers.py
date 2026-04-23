@@ -222,8 +222,6 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
     key_prefix = "edit" if ascent else "add"
 
     with (st.expander(f"{DISCIPLINE_ICONS['Pitches']} Detailed Pitch Information", expanded=False)):
-        st.markdown("Enter complete details for each pitch:")
-
         pitches_list = []
         for i in range(num_pitches):
             st.markdown(f"### Pitch {i+1}")
@@ -252,13 +250,15 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
             with col3:
                 stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], key=f"{key_prefix}_pitch_stars_{i}",
                                            index=default_stars_idx)
-                length = st.number_input("Length (m)", min_value=0.0, key=f"{key_prefix}_pitch_length_{i}",
+                # Name pitch_length, not length, otherwise overall route length variable is overwritten
+                pitch_length = st.number_input("Length (m)", min_value=0.0, key=f"{key_prefix}_pitch_length_{i}",
                                                value=default_length)
 
             col4, col5 = st.columns(2)
             with col4:
                 ernsthaftigkeit_options = get_ernsthaftigkeit_options()
-                ernst = st.selectbox("Ernsthaftigkeit", ernsthaftigkeit_options,
+                # Don't name variable ernsthaftigkeit as this would overwrite the overall route ernsthaftigkeit
+                pitch_ernst = st.selectbox("Ernsthaftigkeit", ernsthaftigkeit_options,
                                            key=f"{key_prefix}_pitch_ernst_{i}", index=default_ernsthaftigkeit_idx)
             with col5:
                 shortnote = st.multiselect("Short note", shortnote_options, key=f"{key_prefix}_pitch_shortnote_{i}")
@@ -277,9 +277,9 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
                 "shortnote": ', '.join(shortnote),
                 "notes": notes,
                 "gear": gear,
-                "length": length,
+                "length": pitch_length,
                 "pitch_name": pitch_name,
-                "ernsthaftigkeit": ernst
+                "ernsthaftigkeit": pitch_ernst
             })
 
             if i < int(num_pitches) - 1:

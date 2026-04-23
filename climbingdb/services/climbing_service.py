@@ -71,11 +71,10 @@ class ClimbingService:
             pitches_data = None
             if route.discipline == "Multipitch":
                 if ascent.pitch_ascents:
-                    sorted_pitch_ascents = sorted(ascent.pitch_ascents, key=lambda pa: pa.pitch.pitch_number)
                     pitches_data = {
-                        'led': [pa.led for pa in sorted_pitch_ascents],
-                        'grade': [pa.grade for pa in sorted_pitch_ascents],
-                        'ole_grade': [pa.ole_grade for pa in sorted_pitch_ascents]
+                        'led': [pa.led for pa in ascent.pitch_ascents],
+                        'grade': [pa.grade for pa in ascent.pitch_ascents],
+                        'ole_grade': [pa.ole_grade for pa in ascent.pitch_ascents]
                     }
                 else:
                     pitches_data = {'ole_grade': [ascent.ole_grade]}
