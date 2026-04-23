@@ -13,6 +13,8 @@ def render_route_details_page(public_db, route_id, user_id=None):
     """Render route detail page."""
     route = public_db.session.query(Route).filter(Route.id == route_id).first()
 
+    st.set_page_config(page_title=f"{route.name} ({route.crag.name}, {route.area.name})")
+
     if not route:
         st.error("Route not found!")
         if st.button(":material/first_page: Back"):
