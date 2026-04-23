@@ -58,7 +58,7 @@ def main():
     route_id = st.query_params.get('route_id')
     if route_id:
         # Check if user is already authenticated (without forcing login)
-        user_id = st.session_state.get('user_id')
+        user_id = st.session_state.get('user_id') if not SHOW_DEMO else 1
         public_db = ClimbingService(user_id=None)
         render_route_details_page(public_db, route_id, user_id=user_id)
         return
