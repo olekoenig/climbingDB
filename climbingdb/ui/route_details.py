@@ -139,14 +139,14 @@ def _render_ascent_properties(ascent):
 
         col1, col2 = st.columns(2)
         with col1:
-            _render_pitch_details(ascent)
-        with col2:
             with st.spinner("Generating visualization..."):
                 df = ClimbingService._ascents_to_dataframe([ascent])
                 fig = plot_multipitches(df, title=df["name"].item(), xwidth=6, ywidth=6)
                 if fig:
                     st.pyplot(fig, dpi=250)
                     plt.close(fig)
+        with col2:
+            _render_pitch_details(ascent)
 
 
 
