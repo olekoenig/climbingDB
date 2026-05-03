@@ -98,10 +98,14 @@ def main():
 
     if len(routes) > 0:
         routes = convert_grades(routes, filters['grade_system'])
-        render_dashboard(routes)
+
+        if st.session_state.view != "Projects":
+            render_dashboard(routes)
+
         if REQUIRE_AUTH:
             render_add_route_form(db, st.session_state.view)
             render_edit_delete_form(db, routes)
+
         render_routes_table(routes)
     else:
         st.warning("No routes match your filters. Try adjusting the filter criteria or add a route.")
