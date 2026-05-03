@@ -38,7 +38,7 @@ def render_grade_metrics(routes):
     if len(routes) == 0:
         return
     
-    routes_sorted = routes.sort_values(by="ole_grade", ascending=False)
+    routes_sorted = routes[routes.is_project == False].sort_values(by="ole_grade", ascending=False)
     
     col1, col2, col3 = st.columns(3)
     

@@ -62,7 +62,8 @@ def _render_add_route_fields(discipline, grade_system, existing_route=None, num_
     length = ernsthaftigkeit = ascent_time = pitches = None
     if discipline == "Multipitch":
         length, ernsthaftigkeit, ascent_time, pitches = render_multipitch_fields(
-            grade_options, style_options, shortnote_options, route=existing_route, num_pitches=num_pitches
+            grade_options, style_options, shortnote_options,
+            route=existing_route, num_pitches=num_pitches, key_prefix="add"
         )
 
     return {
@@ -137,7 +138,8 @@ def render_edit_delete_form(db, routes_df):
         for name, grade, crag in zip(routes_df['name'], routes_df['grade'], routes_df['crag'])
     ]
 
-    with st.expander(":material/edit: Edit or Delete Routes"):
+    with st.expander(":material/edit: Edit or Delete Routes",
+                     expanded=st.session_state.get('show_edit_form', False)):
         selected_idx = st.selectbox("Select Route to Edit/Delete", range(len(route_options)),
                                     format_func=lambda i: route_options[i])
         # Hack to typecast numpy.int64 (from the pandas dataframe) to python-integer
@@ -182,7 +184,7 @@ def _render_edit_fields(db, ascent):
             num_pitches = len(route.pitches)
             new_length, new_ernsthaftigkeit, new_ascent_time, pitch_updates = (
             render_multipitch_fields(grade_options, style_options, shortnote_options, num_pitches,
-                             route=route, ascent=ascent))
+                                    route=route, ascent=ascent, key_prefix=f"edit_{ascent.id}"))
 
         update_submitted = st.form_submit_button("Update Ascent", type="primary")
 

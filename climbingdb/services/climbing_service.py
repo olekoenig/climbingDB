@@ -125,7 +125,10 @@ class ClimbingService:
                             crag=None, area=None, grade=None, style=None,
                             stars=None, operation="=="):
         """Return filtered ascents as DataFrame."""
-        query = self._base_query().filter(Ascent.is_project == False)
+        query = self._base_query()
+
+        if discipline == "Sportclimb" or discipline == "Boulder":
+            query = query.filter(Ascent.is_project == False)
 
         # Eager load route and location
         if area or crag:
