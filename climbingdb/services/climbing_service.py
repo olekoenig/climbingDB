@@ -71,8 +71,10 @@ class ClimbingService:
             pitches_data = None
             if route.discipline == "Multipitch":
                 if ascent.pitch_ascents:
+                    # TODO: parse as ascent.pitch_ascents because there are all fields in there!
                     pitches_data = {
                         'led': [pa.led for pa in ascent.pitch_ascents],
+                        'is_project': [pa.is_project for pa in ascent.pitch_ascents],
                         'grade': [pa.grade for pa in ascent.pitch_ascents],
                         'ole_grade': [pa.ole_grade for pa in ascent.pitch_ascents]
                     }

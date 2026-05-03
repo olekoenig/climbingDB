@@ -51,7 +51,7 @@ def plot_multipitches(mp_dataframe, title="My multipitch distribution", xwidth=N
                 # kwargs['alpha'] = 0.2
                 kwargs['hatch'] = "oo"
 
-            kwargs['alpha'] = 0.2 if row.is_project else 1
+            kwargs['alpha'] = 0.2 if row.pitches_data["is_project"][c] else 1
 
             grade = row['grade'] if row['style'] == "" else "{} {}".format(row['grade'], row['style'])
             subtitle = '{} ({})\n {}'.format(row['name'], grade, row['area'])
