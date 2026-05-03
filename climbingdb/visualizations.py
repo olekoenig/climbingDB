@@ -13,12 +13,14 @@ if shutil.which("latex"):
 def plot_multipitches(mp_dataframe, title="My multipitch distribution", xwidth=None, ywidth=None):
     mp = mp_dataframe.sort_values(by=["ole_grade"], ascending=False)
 
+    plot_route_details = False
     if len(mp['ole_grade']) > 1:
         # Plotting multiple multipitches in multipitch dashboard
         grades = mp['ole_grade']
     else:
         # Plotting only one route for route detail page
         grades = mp['pitches_data'].iloc[0]['ole_grade']
+        plot_route_details = True
 
     min_grade = min(grades)
     max_grade = max(grades)
@@ -51,7 +53,11 @@ def plot_multipitches(mp_dataframe, title="My multipitch distribution", xwidth=N
                 # kwargs['alpha'] = 0.2
                 kwargs['hatch'] = "oo"
 
-            kwargs['alpha'] = 0.2 if row.is_project else 1
+            if plot_route_details:
+                kwargs['alpha'] = 0.2 if row.pitches_data["is_project"][c] else 1
+            else:
+                kwargs['alpha'] = 0.2 if row.is_project else 1
+
 
             grade = row['grade'] if row['style'] == "" else "{} {}".format(row['grade'], row['style'])
             subtitle = '{} ({})\n {}'.format(row['name'], grade, row['area'])

@@ -71,11 +71,12 @@ class ClimbingService:
             pitches_data = None
             if route.discipline == "Multipitch":
                 if ascent.pitch_ascents:
-                    sorted_pitch_ascents = sorted(ascent.pitch_ascents, key=lambda pa: pa.pitch.pitch_number)
+                    # TODO: parse as ascent.pitch_ascents because there are all fields in there!
                     pitches_data = {
-                        'led': [pa.led for pa in sorted_pitch_ascents],
-                        'grade': [pa.grade for pa in sorted_pitch_ascents],
-                        'ole_grade': [pa.ole_grade for pa in sorted_pitch_ascents]
+                        'led': [pa.led for pa in ascent.pitch_ascents],
+                        'is_project': [pa.is_project for pa in ascent.pitch_ascents],
+                        'grade': [pa.grade for pa in ascent.pitch_ascents],
+                        'ole_grade': [pa.ole_grade for pa in ascent.pitch_ascents]
                     }
                 else:
                     pitches_data = {'ole_grade': [ascent.ole_grade]}
@@ -126,7 +127,10 @@ class ClimbingService:
                             crag=None, area=None, grade=None, style=None,
                             stars=None, operation="=="):
         """Return filtered ascents as DataFrame."""
-        query = self._base_query().filter(Ascent.is_project == False)
+        query = self._base_query()
+
+        if discipline == "Sportclimb" or discipline == "Boulder":
+            query = query.filter(Ascent.is_project == False)
 
         # Eager load route and location
         if area or crag:

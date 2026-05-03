@@ -28,7 +28,8 @@ class Route(Base, RouteMixin, UpdateableMixin):
     # Relationships
     crag = relationship("Crag", back_populates="routes")
     ascents = relationship("Ascent", back_populates="route", cascade="all, delete-orphan")
-    pitches = relationship("Pitch", back_populates="route", cascade="all, delete-orphan")
+    pitches = relationship("Pitch", back_populates="route",
+                           cascade="all, delete-orphan", order_by="Pitch.pitch_number")
 
     # Excluded fields when updating in frontend
     _excluded_fields = {'id', 'crag_id'}  # crag updated via relationship

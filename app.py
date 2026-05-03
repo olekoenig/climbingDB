@@ -58,7 +58,7 @@ def main():
     route_id = st.query_params.get('route_id')
     if route_id:
         # Check if user is already authenticated (without forcing login)
-        user_id = st.session_state.get('user_id')
+        user_id = st.session_state.get('user_id') if not SHOW_DEMO else 1
         public_db = ClimbingService(user_id=None)
         render_route_details_page(public_db, route_id, user_id=user_id)
         return
@@ -98,10 +98,14 @@ def main():
 
     if len(routes) > 0:
         routes = convert_grades(routes, filters['grade_system'])
-        render_dashboard(routes)
+
+        if st.session_state.view != "Projects":
+            render_dashboard(routes)
+
         if REQUIRE_AUTH:
             render_add_route_form(db, st.session_state.view)
             render_edit_delete_form(db, routes)
+
         render_routes_table(routes)
     else:
         st.warning("No routes match your filters. Try adjusting the filter criteria or add a route.")

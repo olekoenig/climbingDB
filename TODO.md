@@ -1,6 +1,5 @@
 Frontend:
 
-- add search functionality
 - tabs instead of buttons for navigation
 - add achievements batch:
   - climbed a worlds first (add FA dates)
@@ -23,6 +22,7 @@ Frontend:
 - store cookies -> user doesn't have to re-log-in at page reload
 
 Backend:
+- Add descent time and descent info
 - Bleau: parkour als MSL, mit Boulder grad
 - Fix hack in get_filtered_routers with +0.5 for grade filtering (need to calculate distance properly)
 - consensus grade = AVERAGE(ascent.grade), gewichtet mit #routen des users, evtl. mit erfahrung in diesem Grad?

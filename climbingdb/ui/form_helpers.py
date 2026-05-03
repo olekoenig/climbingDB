@@ -184,6 +184,7 @@ def _get_multipitch_defaults(grade_options, style_options, shortnote_options,
     ernsthaftigkeit_idx = 0
     style_idx = 0
     led_bool = True
+    project_bool = False
     stars_idx = 0
     notes = ""
     gear = ""
@@ -206,24 +207,21 @@ def _get_multipitch_defaults(grade_options, style_options, shortnote_options,
             style_idx = style_options.index(pitch_ascent.style)
 
         led_bool = pitch_ascent.led
+        project_bool = pitch_ascent.is_project
         stars_idx = pitch_ascent.stars
         notes = pitch_ascent.notes if pitch_ascent.notes else ""
         gear = pitch_ascent.gear if pitch_ascent.gear else ""
 
     return (grade_idx, length, pitch_name, ernsthaftigkeit_idx,
-            style_idx, led_bool, stars_idx, notes, gear)
+            style_idx, led_bool, project_bool, stars_idx, notes, gear)
 
 
 def render_multipitch_fields(grade_options, style_options, shortnote_options, num_pitches,
-                             route=None, ascent=None):
+                             route=None, ascent=None, key_prefix=""):
     """Render multipitch fields with full pitch details."""
     length, ernsthaftigkeit, ascent_time = render_multipitch_metadata(route=route, ascent=ascent)
 
-    key_prefix = "edit" if ascent else "add"
-
     with (st.expander(f"{DISCIPLINE_ICONS['Pitches']} Detailed Pitch Information", expanded=False)):
-        st.markdown("Enter complete details for each pitch:")
-
         pitches_list = []
         for i in range(num_pitches):
             st.markdown(f"### Pitch {i+1}")
@@ -234,7 +232,7 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
             # Get the correct indices and values for auto-population (both if one wants
             # to add a route that is already in the database, and if one wants to edit a route).
             (default_grade_idx, default_length, default_pitch_name, default_ernsthaftigkeit_idx,
-             default_style_idx, default_led, default_stars_idx, default_notes, default_gear) = (
+             default_style_idx, default_led, default_project, default_stars_idx, default_notes, default_gear) = (
                 _get_multipitch_defaults(grade_options, style_options, shortnote_options,
                                          pitch=pitch, pitch_ascent=pitch_ascent))
 
@@ -248,17 +246,20 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
             with col2:
                 style = st.selectbox("Style", style_options, key=f"{key_prefix}_pitch_style_{i}", index=default_style_idx)
                 led = st.checkbox("Led (uncheck if followed)", value=default_led, key=f"{key_prefix}_pitch_led_{i}")
+                is_project = st.checkbox("Project", value=default_project, key=f"{key_prefix}_pitch_is_project_{i}")
 
             with col3:
                 stars = st.selectbox("Stars", [0, 1, 2, 3, 4, 5], key=f"{key_prefix}_pitch_stars_{i}",
                                            index=default_stars_idx)
-                length = st.number_input("Length (m)", min_value=0.0, key=f"{key_prefix}_pitch_length_{i}",
+                # Name pitch_length, not length, otherwise overall route length variable is overwritten
+                pitch_length = st.number_input("Length (m)", min_value=0.0, key=f"{key_prefix}_pitch_length_{i}",
                                                value=default_length)
 
             col4, col5 = st.columns(2)
             with col4:
                 ernsthaftigkeit_options = get_ernsthaftigkeit_options()
-                ernst = st.selectbox("Ernsthaftigkeit", ernsthaftigkeit_options,
+                # Don't name variable ernsthaftigkeit as this would overwrite the overall route ernsthaftigkeit
+                pitch_ernst = st.selectbox("Ernsthaftigkeit", ernsthaftigkeit_options,
                                            key=f"{key_prefix}_pitch_ernst_{i}", index=default_ernsthaftigkeit_idx)
             with col5:
                 shortnote = st.multiselect("Short note", shortnote_options, key=f"{key_prefix}_pitch_shortnote_{i}")
@@ -272,14 +273,15 @@ def render_multipitch_fields(grade_options, style_options, shortnote_options, nu
                 "pitch_ascent_id": pitch_ascent.id if pitch_ascent else None,
                 "grade": grade,
                 "led": led,
+                "is_project": is_project,
                 "style": style,
                 "stars": stars,
                 "shortnote": ', '.join(shortnote),
                 "notes": notes,
                 "gear": gear,
-                "length": length,
+                "length": pitch_length,
                 "pitch_name": pitch_name,
-                "ernsthaftigkeit": ernst
+                "ernsthaftigkeit": pitch_ernst
             })
 
             if i < int(num_pitches) - 1:

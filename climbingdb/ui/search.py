@@ -46,7 +46,7 @@ def render_search(db):
     """Render search bar with autocomplete-style results."""
     col_spacer, col1, col2 = st.columns([3, 1.1, 2.5])
     with col1:
-        st.markdown("#### :material/search: Search Routes")
+        st.markdown(":material/search: Search Routes")
     with col2:
         search_term = st.text_input(
             "Search by route name, crag, or area",

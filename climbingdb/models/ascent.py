@@ -22,6 +22,7 @@ class Ascent(Base, AscentMixin, UpdateableMixin):
 
     user = relationship("User", back_populates="ascents")
     route = relationship("Route", back_populates="ascents")
-    pitch_ascents = relationship("PitchAscent", back_populates="ascent", cascade="all, delete-orphan")
+    pitch_ascents = relationship("PitchAscent", back_populates="ascent",
+                                 cascade="all, delete-orphan", order_by="PitchAscent.pitch_id")
 
     _excluded_fields = {'id', 'user_id', 'route_id'}

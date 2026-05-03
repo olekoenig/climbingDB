@@ -13,6 +13,8 @@ def render_route_details_page(public_db, route_id, user_id=None):
     """Render route detail page."""
     route = public_db.session.query(Route).filter(Route.id == route_id).first()
 
+    st.set_page_config(page_title=f"{route.name} ({route.crag.name}, {route.area.name})")
+
     if not route:
         st.error("Route not found!")
         if st.button(":material/first_page: Back"):
@@ -47,8 +49,7 @@ def _render_navigation_header():
 def _render_grade_stars(obj):
     st.markdown(f"**Consensus Grade:** {obj.consensus_grade or 'N/A'}")
     if obj.consensus_stars:
-        stars = ":material/star: " * int(obj.consensus_stars)
-        st.markdown(f"**Average stars:** {stars}")
+        st.markdown(f"**Average stars:** {obj.consensus_stars}")
 
 
 def _render_location(route):
@@ -120,7 +121,6 @@ def _render_ascent_properties(ascent):
     if ascent.stars:
         st.markdown(f"**Stars:** {':material/star:' * int(ascent.stars)}")
 
-
     if hasattr(ascent, 'date') and ascent.date:
         st.markdown(f"**Date:** {str(ascent.date)}")
 
@@ -141,14 +141,14 @@ def _render_ascent_properties(ascent):
 
         col1, col2 = st.columns(2)
         with col1:
-            _render_pitch_details(ascent)
-        with col2:
             with st.spinner("Generating visualization..."):
                 df = ClimbingService._ascents_to_dataframe([ascent])
                 fig = plot_multipitches(df, title=df["name"].item(), xwidth=6, ywidth=6)
                 if fig:
                     st.pyplot(fig, dpi=250)
                     plt.close(fig)
+        with col2:
+            _render_pitch_details(ascent)
 
 
 
@@ -178,9 +178,7 @@ def _render_pitch_details(ascent):
 
     st.markdown(f"#### {DISCIPLINE_ICONS['Pitches']} Detailed Pitch Information")
 
-    sorted_pitch_ascents = sorted(ascent.pitch_ascents, key=lambda pa: pa.pitch.pitch_number)
-
-    for pa in sorted_pitch_ascents:
+    for pa in ascent.pitch_ascents:
         pitch = pa.pitch
 
         pitch_number = pitch.pitch_number
