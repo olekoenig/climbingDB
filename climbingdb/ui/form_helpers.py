@@ -40,7 +40,7 @@ def get_shortnote_options(discipline):
     """Get short note options for discipline."""
     shortnote = ["", "soft", "hard", "FA"]
     if discipline == "Boulder":
-        shortnote.extend(["sit start", "trav"])
+        shortnote.extend(["sit start", "trav", "highball"])
     else:
         shortnote.append("trad")
 

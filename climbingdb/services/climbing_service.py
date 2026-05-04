@@ -13,7 +13,9 @@ from climbingdb.services.crud import (
     get_or_create_location,
     get_or_create_route,
     create_ascent,
-    create_pitches_and_ascents
+    create_pitches_and_ascents,
+    get_or_create_area,
+    get_or_create_crag
 )
 
 
@@ -260,11 +262,42 @@ class ClimbingService:
         ascent_fields = Ascent.get_updatable_fields()
         route_fields = Route.get_updatable_fields()
 
+        # Handle location changes separately
+        new_route_name = kwargs.pop('route_name', None)
+        new_crag_name = kwargs.pop('crag_name', None)
+        new_area_name = kwargs.pop('area_name', None)
+
+        # Update ascent and route fields
         for field, value in kwargs.items():
             if field in ascent_fields:
                 setattr(ascent, field, value)
             elif field in route_fields:
                 setattr(ascent.route, field, value)
+
+        # Update route name
+        if new_route_name and new_route_name != ascent.route.name:
+            ascent.route.name = new_route_name
+
+        # Update location if crag or area changed
+        if new_crag_name or new_area_name:
+            current_area_name = ascent.route.crag.area.name
+            current_crag_name = ascent.route.crag.name
+
+            # Use new values or fall back to current
+            target_area_name = new_area_name or current_area_name
+            target_crag_name = new_crag_name or current_crag_name
+
+            # Get or create new crag/area
+            new_crag = get_or_create_crag(
+                self.session,
+                crag_name=target_crag_name,
+                area=get_or_create_area(
+                    self.session,
+                    area_name=target_area_name,
+                    country=ascent.route.crag.area.country
+                )
+            )
+            ascent.route.crag = new_crag
 
         self.session.commit()
 

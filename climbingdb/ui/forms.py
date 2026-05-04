@@ -165,7 +165,9 @@ def _render_edit_fields(db, ascent):
     discipline = st.session_state.view
 
     with (st.form(f"edit_route_form_{ascent.id}")):
-        st.text_input("Route Name", value=route.name, disabled=True)
+        route_name = st.text_input("Route Name", value=route.name)
+        crag_name = st.text_input("Crag", value=route.crag.name if route.crag else "")
+        area_name = st.text_input("Area", value=route.crag.area.name if route.crag and route.crag.area else "")
 
         grade_system = Grade(route.consensus_grade).get_scale()
         grade_options = get_grade_options(grade_system)
@@ -192,6 +194,11 @@ def _render_edit_fields(db, ascent):
             try:
                 db.update_ascent(
                     ascent_id=ascent.id,
+                    # Location fields
+                    route_name=route_name if route_name != route.name else None,
+                    crag_name=crag_name if crag_name != route.crag.name else None,
+                    area_name=area_name if route.crag and area_name != route.crag.area.name else None,
+                    # Ascent fields
                     grade=new_grade,
                     style=new_style if new_style else None,
                     stars=new_stars,
